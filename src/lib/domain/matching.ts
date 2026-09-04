@@ -9,6 +9,7 @@ export type WorkerCandidate = {
   completedJobs: number;
   isAvailable: boolean;
   skillMatch: boolean;
+  serviceRequirementMatch: boolean;
 };
 
 export type RankedWorker = WorkerCandidate & {
@@ -17,13 +18,13 @@ export type RankedWorker = WorkerCandidate & {
 
 export function calculateWorkerScore(candidate: WorkerCandidate) {
   const skill = candidate.skillMatch ? 30 : 0;
-  const distance = candidate.distanceKm === null ? 8 : Math.max(0, 20 - Math.min(candidate.distanceKm, 20));
+  const distance = candidate.distanceKm === null ? 0 : Math.max(0, 20 - Math.min(candidate.distanceKm, 20));
   const availability = candidate.isAvailable ? 20 : 0;
-  const rating = Math.min(candidate.averageRating, 5) * 3;
-  const experience = Math.min(candidate.yearsExperience, 10);
-  const completion = Math.min(candidate.completedJobs / 25, 5);
+  const rating = (Math.min(candidate.averageRating, 5) / 5) * 15;
+  const experience = (Math.min(candidate.yearsExperience, 10) / 10) * 10;
+  const serviceRequirement = candidate.serviceRequirementMatch ? 5 : 0;
 
-  return Math.round((skill + distance + availability + rating + experience + completion) * 100) / 100;
+  return Math.round((skill + distance + availability + rating + experience + serviceRequirement) * 100) / 100;
 }
 
 export function rankWorkers(candidates: WorkerCandidate[]): RankedWorker[] {

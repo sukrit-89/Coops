@@ -37,9 +37,10 @@ export async function requireUser(nextPath = "/dashboard") {
   return session as typeof session & { user: User };
 }
 
-export async function requireRole(role: AppRole) {
+export async function requireRole(role: AppRole | AppRole[]) {
   const session = await requireUser();
-  if (!session.roles.includes(role) && !session.roles.includes("platform_admin")) {
+  const requiredRoles = Array.isArray(role) ? role : [role];
+  if (!requiredRoles.some((r) => session.roles.includes(r)) && !session.roles.includes("platform_admin")) {
     redirect("/");
   }
 

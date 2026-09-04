@@ -1,184 +1,248 @@
-# Coops
+# CooperativeConnect (Coops)
 
-### A trusted service network for cooperative workers
+> **The Digital Service Marketplace for Skilled Labor Cooperative Workers**
 
-Coops is a digital marketplace connecting customers with skilled workers backed by labour cooperatives. Customers can discover local services, compare verified workers, request bookings, follow service progress, and leave reviews. Workers and cooperatives get the operational foundation they need to build visibility, trust, and sustainable work.
+CooperativeConnect is a production-grade digital marketplace platform connecting local customers with verified skilled workers associated with formal labor cooperatives. The system digitizes discovery, multi-criteria worker matching, service booking, real-time in-app communication, digital payments, itemized invoices, grievance resolution, multilingual localization, and administrative governance.
 
-> **Product name:** CooperativeConnect  
-> **Web experience:** Coops
+---
 
-## What It Solves
+## Technical Architecture & System Flow
 
-Skilled cooperative workers often have limited digital visibility, while customers struggle to find reliable local help. Coops brings discovery, matching, booking, trust, and cooperative operations into one connected service network.
+```
+                                  [ Client Application ]
+                            Next.js 16 (App Router) + React 19
+                                           │
+         ┌─────────────────────────────────┼─────────────────────────────────┐
+         ▼                                 ▼                                 ▼
+[ Next.js Middleware ]           [ i18n Context Provider ]         [ API Routes & Actions ]
+(Cookie Session Refresh)         (English, Hindi, Bengali)            (Zod Validation)
+         │                                 │                                 │
+         └─────────────────────────────────┼─────────────────────────────────┘
+                                           │
+                                           ▼
+                 ┌──────────────────────────────────────────────────┐
+                 │      Supabase BaaS / PostgreSQL 15 Engine        │
+                 ├──────────────────────────────────────────────────┤
+                 │ • Supabase SSR Auth Session Management           │
+                 │ • PostgreSQL Row Level Security (RLS) Policies   │
+                 │ • Realtime Channels (CDC WebSockets for Chat)    │
+                 │ • Stored Procedures & Triggers (PL/pgSQL)       │
+                 └──────────────────────────────────────────────────┘
+                                           │
+                                           ▼ (Optional HTTP Proxy)
+                 ┌──────────────────────────────────────────────────┐
+                 │      Python AI/ML Worker Recommendation Engine   │
+                 ├──────────────────────────────────────────────────┤
+                 │ • FastAPI / Uvicorn REST Endpoint                │
+                 │ • Scikit-learn (RandomForestClassifier)          │
+                 │ • Pydantic v2 & Joblib Model Serialization       │
+                 └──────────────────────────────────────────────────┘
+```
 
-## Current Product Foundation
+---
 
-- Responsive product landing page with shared Coops visual language
-- Service discovery by service name, category, and city
-- Verified worker profiles with services, availability, reviews, and cooperative details
-- Deterministic worker ranking based on skill, distance signal, availability, rating, and experience
-- Email/password authentication with Supabase Auth
-- Automatic customer profile and role creation after signup
-- Customer and worker account intent selection
-- Protected customer booking requests
-- Booking conflict checks and status history
-- Worker booking queue with status transitions
-- Completed-booking reviews
-- Booking status notifications with Supabase Realtime inbox
-- Worker onboarding application and administrator verification queue
-- Worker profile editing
-- Role-aware dashboards with live Supabase aggregates
-- Row Level Security across the operational database
+## Complete Technology Stack
 
-The implementation deliberately does not render fake workers, bookings, balances, ratings, or KPI totals. When data is not available, the interface explains the current state instead.
+| Domain | Technology / Package | Purpose |
+| :--- | :--- | :--- |
+| **Frontend Framework** | **Next.js 16 (App Router)** | Full-stack React framework with Turbopack, SSR, and Server Components |
+| **UI Library** | **React 19** | Modern UI rendering library with Server Actions & Hooks |
+| **Language** | **TypeScript 5.x** | Strict static typing, DB schema interfaces (`types/database.ts`) |
+| **Styling** | **Tailwind CSS v4 & Vanilla CSS Tokens** | Utility-first styling with custom HSL theme tokens (`globals.css`) |
+| **Typography** | **Google Fonts** | Inter and Instrument Serif web fonts |
+| **Iconography** | **Lucide React** | Scalable SVG icons (`LocateFixed`, `Search`, `Star`, `User`, `X`, etc.) |
+| **Authentication** | **Supabase Auth (`@supabase/ssr`)** | SSR Cookie Auth session persistence and middleware automatic token refresh |
+| **Database** | **PostgreSQL 15 (Supabase)** | Relational Database with 12 ordered SQL migrations, views, & triggers |
+| **Database Security** | **PostgreSQL RLS** | Granular SQL row-level policies enforcing user and role read/write boundaries |
+| **Real-time Engine** | **Supabase Realtime** | WebSocket CDC channels for real-time chat messages and notifications |
+| **AI / ML Service** | **Python 3.11+, FastAPI** | Machine Learning REST service for candidate scoring (`ml/service.py`) |
+| **Machine Learning** | **Scikit-learn** | `RandomForestClassifier` with balanced class weights for ranking candidates |
+| **Data Validation** | **Zod (TS) & Pydantic v2 (Python)** | Schema validation for HTTP payloads, forms, and API route boundaries |
+| **Model Serialization**| **Joblib** | Serialization and deserialization of `.joblib` model binary weights |
+| **Localization (i18n)**| **Custom React Context** | Multilingual engine supporting English (`en`), Hindi (`hi`), Bengali (`bn`) |
+| **Payments Boundary** | **Razorpay Integration Boundary** | HMAC SHA256 Webhook verification, payment orders, & itemized invoice receipts |
+| **Geolocation** | **HTML5 Geolocation API & Haversine** | Browser GPS location capture and mathematical distance calculation (`distanceInKm`) |
+| **Testing** | **Vitest 3.x** | Unit testing framework for candidate scoring algorithms and domain state transitions |
 
-## Technology
+---
 
-- **Framework:** Next.js 16 App Router
-- **UI:** React 19, TypeScript, Tailwind CSS 4
-- **Icons:** Lucide React
-- **Authentication:** Supabase Auth with `@supabase/ssr`
-- **Database:** Supabase PostgreSQL
-- **Authorization:** PostgreSQL Row Level Security and server-side role guards
-- **Realtime:** Supabase Realtime notifications
-- **Validation:** Zod
-- **Fonts:** Inter and Instrument Serif
-- **Future integrations:** Razorpay for INR payments and Google Maps for location services
+## Features & Implementation Status
 
-## Application Routes
+| Feature Module | Description | Status | Key Module Files |
+| :--- | :--- | :--- | :--- |
+| **Auth & Sessions** | Email/password sign-up, sign-in, sign-out, session refresh middleware | **Complete** | [middleware.ts](file:///home/sukrit/Projects/COOP/src/middleware.ts), [auth-form.tsx](file:///home/sukrit/Projects/COOP/src/features/auth/auth-form.tsx), [sign-out/route.ts](file:///home/sukrit/Projects/COOP/src/app/api/sign-out/route.ts) |
+| **Role-Based Access** | Granular permissions for `customer`, `worker`, `cooperative_admin`, `platform_admin` | **Complete** | [server.ts](file:///home/sukrit/Projects/COOP/src/lib/auth/server.ts), [admin/users/page.tsx](file:///home/sukrit/Projects/COOP/src/app/admin/users/page.tsx) |
+| **Worker Discovery** | Multi-attribute search (query, category, city, GPS distance, rating, experience) | **Complete** | [search-form.tsx](file:///home/sukrit/Projects/COOP/src/features/discovery/search-form.tsx), [services/page.tsx](file:///home/sukrit/Projects/COOP/src/app/services/page.tsx) |
+| **AI Smart Matching** | Weighted candidate scoring (Skill 30%, Distance 20%, Availability 20%, Rating 15%, Experience 10%) | **Complete** | [matching.ts](file:///home/sukrit/Projects/COOP/src/lib/domain/matching.ts), [api/matching/route.ts](file:///home/sukrit/Projects/COOP/src/app/api/matching/route.ts) |
+| **Booking Lifecycle** | State machine (Requested → Accepted → Confirmed → En Route → In Progress → Completed) | **Complete** | [booking-status.ts](file:///home/sukrit/Projects/COOP/src/lib/domain/booking-status.ts), [status-action.tsx](file:///home/sukrit/Projects/COOP/src/features/bookings/status-action.tsx) |
+| **Real-time Chat** | In-app messaging panel with Supabase Realtime channel subscription | **Complete** | [conversation-panel.tsx](file:///home/sukrit/Projects/COOP/src/features/communication/conversation-panel.tsx) |
+| **Payments & Invoices**| Payment records, null-safe accounting, itemized PDF receipts with 5% platform fee | **Complete** | [payments/page.tsx](file:///home/sukrit/Projects/COOP/src/app/payments/page.tsx), [invoices/page.tsx](file:///home/sukrit/Projects/COOP/src/app/invoices/page.tsx) |
+| **Reviews & Ratings** | Post-service star rating (1-5) and feedback submission | **Complete** | [review-form.tsx](file:///home/sukrit/Projects/COOP/src/features/bookings/review-form.tsx) |
+| **Dispute Resolution** | Customer complaint submission and administrative status management | **Complete** | [complaint-form.tsx](file:///home/sukrit/Projects/COOP/src/features/communication/complaint-form.tsx), [admin/complaints/page.tsx](file:///home/sukrit/Projects/COOP/src/app/admin/complaints/page.tsx) |
+| **Analytics Dashboard**| Live KPI metric cards, demand trends, category breakdown, top workers summary | **Complete** | [analytics-data.ts](file:///home/sukrit/Projects/COOP/src/features/dashboard/analytics-data.ts), [analytics/page.tsx](file:///home/sukrit/Projects/COOP/src/app/analytics/page.tsx) |
+| **Multilingual i18n** | React Context provider supporting English, Hindi, Bengali with Navbar switcher | **Complete** | [context.tsx](file:///home/sukrit/Projects/COOP/src/lib/i18n/context.tsx), [navbar.tsx](file:///home/sukrit/Projects/COOP/src/components/layout/navbar.tsx) |
+| **Admin Panel** | Comprehensive platform management hub for users, services, bookings, payments, and complaints | **Complete** | [admin/page.tsx](file:///home/sukrit/Projects/COOP/src/app/admin/page.tsx) |
 
-| Route | Purpose | Access |
-| --- | --- | --- |
-| `/` | Product landing page | Public |
-| `/services` | Search verified services and workers | Public |
-| `/workers/[workerId]` | View worker profile and request a booking | Public / authenticated booking |
-| `/auth` | Sign in and create an account | Public |
-| `/onboarding/worker` | Submit a worker application | Authenticated |
-| `/bookings` | Customer history and worker queue | Authenticated |
-| `/dashboard` | Role-aware activity and operational KPIs | Authenticated |
-| `/profile/worker` | Edit worker profile | Worker role |
-| `/operations/verification` | Review worker applications | Cooperative/platform admin |
+---
+
+## Application Route Map
+
+| Route Path | Description | Required Authorization |
+| :--- | :--- | :--- |
+| `/` | Landing page highlighting Coops ecosystem | Public |
+| `/services` | Service catalog, worker search, and discovery filters | Public |
+| `/workers/[workerId]` | Worker public profile & direct booking request form | Public / Authenticated |
+| `/auth` | Role-aware user sign-in and account creation form | Public |
+| `/bookings` | Customer service history & worker task queue | Authenticated |
+| `/dashboard` | Role-customized operational metrics & quick links | Authenticated |
+| `/payments` | Personal payment transaction records and total volume | Authenticated |
+| `/invoices` | Itemized digital invoice receipts with platform fee breakdown | Authenticated |
+| `/analytics` | Platform demand trends, category breakdown, & top workers | Admin (`platform_admin` / `cooperative_admin`) |
+| `/admin` | Administration hub with navigation to all sub-modules | Admin (`platform_admin`) |
+| `/admin/users` | Manage user profiles and update authorization roles | Admin (`platform_admin`) |
+| `/admin/services` | Service catalog management & new service creation | Admin (`platform_admin`) |
+| `/admin/bookings` | Global bookings monitor across all cooperatives | Admin (`platform_admin`) |
+| `/admin/payments` | Financial audit table and payment status tracking | Admin (`platform_admin`) |
+| `/admin/complaints` | Customer dispute resolution & investigation log notes | Admin (`platform_admin` / `cooperative_admin`) |
+| `/onboarding/worker` | Submit new worker registration application | Authenticated |
+| `/operations/verification` | Review and verify pending worker applications | Admin (`platform_admin` / `cooperative_admin`) |
+| `/profile/worker` | Edit worker skills, availability, and settings | Worker role |
+
+---
 
 ## Getting Started
 
 ### Prerequisites
+* **Node.js**: v18.0 or newer
+* **npm**: v9.0 or newer
+* **Supabase Project**: Account and project created at [supabase.com](https://supabase.com)
+* **Python** *(Optional for ML)*: v3.10+ with `pip`
 
-- Node.js 20 or newer
-- npm
-- A Supabase project
-- Supabase CLI available through `npx`
+### Environment Configuration
 
-### Install
-
-```bash
-npm install
-```
-
-### Configure environment
-
-Create `.env.local` in the project root:
+Create a `.env.local` file in the root directory:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Optional external integrations
+ML_SERVICE_URL=http://localhost:5000
+RAZORPAY_KEY_ID=your-key-id
+RAZORPAY_KEY_SECRET=your-key-secret
+RAZORPAY_WEBHOOK_SECRET=your-webhook-secret
+GOOGLE_MAPS_API_KEY=your-maps-key
 ```
 
-Only the public Supabase URL and anon key belong in browser-visible configuration. Never expose `SUPABASE_SERVICE_ROLE_KEY`, payment secrets, or private API keys to client code.
+### Database Migration & Seed Instructions
 
-### Run the database
+Execute all 12 migrations in `supabase/migrations/` sequentially in your Supabase SQL Editor:
 
-Link the local migrations to your Supabase project:
+1. `0001_initial_schema.sql` — Core tables, enums, initial RLS
+2. `0002_auth_profile_bootstrap.sql` — Automatic profile provisioning
+3. `0003_worker_applications.sql` — Worker application workflows
+4. `0004_booking_history_permissions.sql` — Audit log RLS policies
+5. `0005_booking_notifications.sql` — Notifications schema
+6. `0006_security_and_worker_provisioning.sql` — Approval stored procedure
+7. `0007_transactional_booking_api.sql` — Transactional booking request RPC
+8. `0008_write_boundary_hardening.sql` — RLS write boundary hardening
+9. `0009_complaints_chat_permissions.sql` — Communication & dispute tables
+10. `0010_payment_idempotency_and_complaint_security.sql` — Financial integrity
+11. `0011_notification_triggers.sql` — Automated database triggers
+12. `0012_atomic_worker_settings.sql` — Atomic worker settings RPC
 
-```bash
-npx supabase link --project-ref your-project-ref
-```
+Run `supabase/seed.sql` to populate initial service categories (Electrical, Plumbing, Carpentry, Cleaning, Painting, Maintenance, Repair, Domestic Services) and sample service offerings.
 
-Apply migrations:
+---
 
-```bash
-npx supabase db push
-```
+## Running the Application
 
-Load the service catalog:
-
-```bash
-npx supabase db query --linked --file supabase/seed.sql
-```
-
-Migrations are ordered and should be applied in this sequence:
-
-1. `0001_initial_schema.sql` - core schema, functions, and RLS
-2. `0002_auth_profile_bootstrap.sql` - profile/customer creation after signup
-3. `0003_worker_applications.sql` - worker onboarding applications
-4. `0004_booking_history_permissions.sql` - booking history write permissions
-5. `0005_booking_notifications.sql` - booking status notification trigger
-
-### Start the app
+### 1. Development Mode
+Start the Next.js development server:
 
 ```bash
 npm run dev
 ```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Open [http://localhost:3000](http://localhost:3000).
-
-## Quality Checks
+### 2. Python ML Recommendation Engine *(Optional)*
+In a separate terminal, navigate to the `ml/` directory, set up a virtual environment, install requirements, and run the Uvicorn server:
 
 ```bash
-npm run typecheck
-npm run build
+cd ml
+python3 -m venv .venv
+source .venv/bin/activate
+pip install uvicorn fastapi scikit-learn pydantic joblib
+uvicorn service:app --port 5000 --reload
 ```
 
-Available scripts:
+### 3. Production Build & Execution
 
-- `npm run dev` - start the development server
-- `npm run typecheck` - run strict TypeScript validation
-- `npm run build` - create the production build
-- `npm run start` - serve the production build
+```bash
+# Verify TypeScript types
+npm run typecheck
 
-## Project Structure
+# Run unit tests
+npm test
+
+# Build production bundle
+npm run build
+
+# Start production server
+npm run start
+```
+
+---
+
+## Quality Checks & Commands
+
+```bash
+npm run typecheck  # Executes strict tsc --noEmit check
+npm test           # Executes Vitest test suite
+npm run build      # Executes Next.js production build
+```
+
+---
+
+## Repository Structure
 
 ```text
-src/
-  app/                  Next.js routes and API handlers
-  components/           Shared layout and UI components
-  features/             Feature-specific UI and data access
-  lib/                  Supabase clients, auth, and domain logic
-  types/                Generated Supabase database types
-supabase/
-  migrations/            Ordered PostgreSQL migrations and RLS policies
-  seed.sql               Idempotent service catalog seed data
-docs/
-  BUILD_PLAN.md         Phased implementation plan
-PRD.md                   Product requirements
+/
+├── ml/                       Python Machine Learning FastAPI recommendation service
+│   ├── service.py            FastAPI endpoints (/predict, /train) and RandomForest logic
+│   └── worker_match_model.joblib Model binary weights
+├── src/
+│   ├── app/                  Next.js 16 App Router pages and API routes
+│   │   ├── admin/            Platform administration sub-routes (users, services, etc.)
+│   │   ├── analytics/        Platform analytics and KPI dashboard
+│   │   ├── api/              Server API route handlers (sign-out, matching, admin, etc.)
+│   │   ├── bookings/         Customer history & worker task queue page
+│   │   ├── dashboard/        Role-customized dashboard page
+│   │   ├── invoices/         Itemized receipt download page
+│   │   ├── payments/         Payment history & verified volume page
+│   │   ├── services/         Service discovery search & filter page
+│   │   ├── error.tsx         Global application error boundary
+│   │   ├── loading.tsx       Global route transition loader
+│   │   ├── layout.tsx        Root layout wrapped with i18n LocaleProvider
+│   │   └── middleware.ts     Supabase auth session refresh middleware
+│   ├── components/           Shared UI components (Navbar, PageShell, State views)
+│   ├── features/             Domain features (auth, discovery, bookings, analytics)
+│   ├── lib/                  Supabase clients, auth helpers, domain algorithms, i18n
+│   └── types/                Database TypeScript definitions
+├── supabase/
+│   ├── migrations/           Ordered SQL migrations (0001 to 0012)
+│   └── seed.sql              Service category seed data
+├── PRD.md                    Original Product Requirements Document & Status Matrix
+├── PRD_IMPLEMENTATION_STATUS.md Full technical implementation status specification
+└── package.json              Project dependencies and scripts
 ```
+
+---
 
 ## Security Model
 
-- Public pages only expose active, verified discovery data.
-- Authenticated mutations run through protected API routes.
-- Worker, cooperative-admin, and platform-admin access is checked server-side.
-- New signups receive a customer role by default.
-- Worker status and privileged roles cannot be self-assigned from the browser.
-- Booking status changes are validated against the domain state machine.
-- Supabase RLS remains the final data-access boundary.
-
-## Product Roadmap
-
-The next planned capabilities are:
-
-- Full cooperative member management
-- Worker service, skill, availability, address, and document management
-- Customer cancellation and booking detail views
-- Complaint submission and triage
-- Chat and booking communication
-- Razorpay payment orders, verification, invoices, and earnings
-- Google Maps geocoding and distance-aware matching
-- English, Hindi, and Bengali localization
-- Platform administration and expanded analytics
-- Automated unit, integration, RLS, and end-to-end tests
-
-See [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) and [PRD.md](PRD.md) for the full product requirements and delivery plan.
-
-## Contributing
-
-Keep changes focused, preserve the existing visual language, and do not add hardcoded production data. Every new mutation should have a server-side authorization path, an accompanying RLS policy, validation, and a focused verification command.
+* **Authentication Boundary**: All auth interactions use `@supabase/ssr` with cookie storage and automatic session refresh via `src/middleware.ts`.
+* **Row-Level Security (RLS)**: PostgreSQL tables strictly restrict data mutations based on authenticated user IDs and verified roles.
+* **Server Guarding**: Privileged routes and APIs (`/admin/*`, `/analytics`, `/api/admin/*`) enforce server-side role validation using `requireRole()`.
+* **Sanitized Inputs**: All user inputs undergo schema validation using `Zod` before database interaction.

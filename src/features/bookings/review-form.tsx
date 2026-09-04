@@ -12,7 +12,7 @@ export function ReviewForm({ bookingId, workerId }: { bookingId: string; workerI
     event.preventDefault();
     setPending(true);
     setMessage(null);
-    const response = await fetch("/api/reviews", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bookingId, workerId, rating, body }) });
+    const response = await fetch("/api/reviews", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bookingId, workerId, rating: Number(rating), body }) });
     const result = await response.json() as { error?: string };
     setMessage(response.ok ? "Review submitted." : result.error ?? "Review could not be submitted.");
     if (response.ok) setBody("");

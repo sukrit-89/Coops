@@ -584,6 +584,30 @@ export type Database = {
           },
         ]
       }
+      payment_webhook_events: {
+        Row: {
+          event_name: string
+          id: string
+          provider: string
+          provider_event_id: string
+          received_at: string
+        }
+        Insert: {
+          event_name: string
+          id?: string
+          provider: string
+          provider_event_id: string
+          received_at?: string
+        }
+        Update: {
+          event_name?: string
+          id?: string
+          provider?: string
+          provider_event_id?: string
+          received_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount_cents: number
@@ -1084,7 +1108,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_worker_application: {
+        Args: { target_application_id: string; target_cooperative_id: string }
+        Returns: undefined
+      }
+      create_booking_request: {
+        Args: {
+          target_city: string
+          target_line1: string
+          target_requirement: string
+          target_scheduled_end: string
+          target_scheduled_start: string
+          target_service_id: string
+          target_state: string
+          target_worker_id: string
+        }
+        Returns: string
+      }
       earth: { Args: never; Returns: number }
+      get_public_worker_locations: {
+        Args: never
+        Returns: {
+          city: string
+          latitude: number
+          longitude: number
+          profile_id: string
+          state: string
+        }[]
+      }
       has_role: {
         Args: { required_role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
@@ -1092,6 +1143,24 @@ export type Database = {
       is_cooperative_admin: {
         Args: { target_cooperative_id: string }
         Returns: boolean
+      }
+      update_booking_status: {
+        Args: {
+          target_booking_id: string
+          target_note?: string
+          target_status: Database["public"]["Enums"]["booking_status"]
+        }
+        Returns: undefined
+      }
+      update_worker_profile: {
+        Args: {
+          target_bio: string
+          target_full_name: string
+          target_phone: string
+          target_service_radius_km: number
+          target_years_experience: number
+        }
+        Returns: undefined
       }
       worker_average_rating: {
         Args: { target_worker_id: string }

@@ -12,6 +12,13 @@ export type DiscoveryFilters = {
   query?: string;
   category?: string;
   city?: string;
+  latitude?: number;
+  longitude?: number;
+  scheduledAt?: string;
+  requirement?: string;
+  minRating?: number;
+  maxDistance?: number;
+  minExperience?: number;
 };
 
 function databaseError(message: string) {
@@ -65,6 +72,16 @@ type AvailabilityRow = {
   day_of_week: number;
   is_active: boolean;
 };
+
+type SkillRow = { worker_id: string; name: string };
+
+function distanceInKm(latitude: number, longitude: number, targetLatitude: number, targetLongitude: number) {
+  const earthRadius = 6371;
+  const latitudeDelta = (targetLatitude - latitude) * Math.PI / 180;
+  const longitudeDelta = (targetLongitude - longitude) * Math.PI / 180;
+  const value = Math.sin(latitudeDelta / 2) ** 2 + Math.cos(latitude * Math.PI / 180) * Math.cos(targetLatitude * Math.PI / 180) * Math.sin(longitudeDelta / 2) ** 2;
+  return earthRadius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
+}
 
 export async function getServiceCategories() {
   const supabase = await createSupabaseServerClient();
@@ -122,15 +139,17 @@ export async function discoverWorkers(filters: DiscoveryFilters) {
   const rows = (data ?? []) as unknown as WorkerServiceRow[];
   const workerIds = rows.map((row) => row.worker_id);
 
-  const [{ data: addresses }, { data: reviews }, { data: availability }] = await Promise.all([
-    supabase.from("addresses").select("profile_id,city,latitude,longitude").in("profile_id", workerIds),
+  const [{ data: locations }, { data: reviews }, { data: availability }, { data: skills }] = await Promise.all([
+    supabase.rpc("get_public_worker_locations"),
     supabase.from("reviews").select("worker_id,rating").in("worker_id", workerIds),
-    supabase.from("worker_availability").select("worker_id,day_of_week,is_active").in("worker_id", workerIds).eq("is_active", true)
+    supabase.from("worker_availability").select("worker_id,day_of_week,is_active").in("worker_id", workerIds).eq("is_active", true),
+    supabase.from("worker_skills").select("worker_id,name").in("worker_id", workerIds)
   ]);
 
-  const addressRows = (addresses ?? []) as unknown as AddressRow[];
+  const addressRows = (locations ?? []) as unknown as AddressRow[];
   const reviewRows = (reviews ?? []) as unknown as ReviewRow[];
   const availabilityRows = (availability ?? []) as unknown as AvailabilityRow[];
+  const skillRows = (skills ?? []) as unknown as SkillRow[];
 
   const addressByWorker = new Map(addressRows.map((address) => [address.profile_id, address]));
   const ratingsByWorker = new Map<string, number[]>();
@@ -140,6 +159,10 @@ export async function discoverWorkers(filters: DiscoveryFilters) {
     ratingsByWorker.set(review.worker_id, ratings);
   }
   const availableWorkers = new Set(availabilityRows.map((item) => item.worker_id));
+  const skillsByWorker = new Map<string, string[]>();
+  for (const skill of skillRows) skillsByWorker.set(skill.worker_id, [...(skillsByWorker.get(skill.worker_id) ?? []), skill.name]);
+  const requestedDay = filters.scheduledAt ? new Date(filters.scheduledAt).getDay() : null;
+  const requestedTokens = (filters.requirement ?? filters.query ?? "").toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length > 2);
 
   const candidates: WorkerCandidate[] = rows
     .map((row): WorkerCandidate | null => {
@@ -159,17 +182,39 @@ export async function discoverWorkers(filters: DiscoveryFilters) {
         ? ratings.reduce((total, rating) => total + rating, 0) / ratings.length
         : 0;
 
+      if (filters.minRating !== undefined && averageRating > 0 && averageRating < filters.minRating) {
+        return null;
+      }
+
+      if (filters.minExperience !== undefined && worker.years_experience < filters.minExperience) {
+        return null;
+      }
+
+      const workerSkills = skillsByWorker.get(row.worker_id) ?? [];
+      const searchableText = [service.name, ...workerSkills].join(" ").toLowerCase();
+      const skillMatch = requestedTokens.length === 0 || requestedTokens.some((token) => searchableText.includes(token));
+      const serviceRequirementMatch = requestedTokens.length === 0 || requestedTokens.some((token) => service.name.toLowerCase().includes(token));
+      const workerAvailableOnRequestedDay = requestedDay === null || availabilityRows.some((item) => item.worker_id === row.worker_id && item.day_of_week === requestedDay);
+      const distanceKm = filters.latitude !== undefined && filters.longitude !== undefined && address?.latitude !== null && address?.longitude !== null && address?.latitude !== undefined && address?.longitude !== undefined
+        ? distanceInKm(address.latitude, address.longitude, filters.latitude, filters.longitude)
+        : null;
+
+      if (filters.maxDistance !== undefined && distanceKm !== null && distanceKm > filters.maxDistance) {
+        return null;
+      }
+
       return {
         workerId: row.worker_id,
         fullName: worker.profiles?.full_name ?? "Unnamed worker",
         serviceName: service.name,
         city: address?.city ?? null,
-        distanceKm: null,
+        distanceKm,
         yearsExperience: worker.years_experience,
         averageRating,
         completedJobs: worker.completed_jobs,
-        isAvailable: availableWorkers.has(row.worker_id),
-        skillMatch: true
+        isAvailable: availableWorkers.has(row.worker_id) && workerAvailableOnRequestedDay,
+        skillMatch,
+        serviceRequirementMatch
       };
     })
     .filter((candidate): candidate is WorkerCandidate => candidate !== null);

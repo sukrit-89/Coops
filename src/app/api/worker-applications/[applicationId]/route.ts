@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/server";
 
 type Context = { params: Promise<{ applicationId: string }> };
-const updateSchema = z.object({ status: z.enum(["verified", "rejected"]), reviewerNotes: z.string().trim().max(1000).optional() });
+const updateSchema = z.object({ status: z.enum(["verified", "rejected"]), cooperativeId: z.string().uuid().optional(), reviewerNotes: z.string().trim().max(1000).optional() });
 
 export async function PATCH(request: Request, { params }: Context) {
   const session = await getCurrentUser();
@@ -19,6 +19,14 @@ export async function PATCH(request: Request, { params }: Context) {
     if (!application.cooperative_id) return NextResponse.json({ error: "This application is not assigned to a cooperative." }, { status: 403 });
     const membership = await session.supabase.from("cooperative_members").select("profile_id").eq("cooperative_id", application.cooperative_id).eq("profile_id", session.user.id).eq("role", "cooperative_admin").maybeSingle();
     if (!membership.data) return NextResponse.json({ error: "You cannot review this cooperative application." }, { status: 403 });
+  }
+
+  if (parsed.data.status === "verified") {
+    const cooperativeId = parsed.data.cooperativeId ?? application.cooperative_id;
+    if (!cooperativeId) return NextResponse.json({ error: "Select a cooperative before approving this application." }, { status: 400 });
+    const { error } = await session.supabase.rpc("approve_worker_application", { target_application_id: applicationId, target_cooperative_id: cooperativeId });
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ ok: true });
   }
 
   const { error } = await session.supabase.from("worker_applications").update({ status: parsed.data.status, reviewer_notes: parsed.data.reviewerNotes ?? null }).eq("id", applicationId);

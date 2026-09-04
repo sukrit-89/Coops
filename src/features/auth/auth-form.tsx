@@ -35,6 +35,18 @@ export function AuthForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
       setMessage("Account created. Check your email if confirmation is enabled, then sign in.");
       setMode("sign-in");
     } else {
+      const { data: user } = await supabase.auth.getUser();
+      if (user?.user) {
+        const { data: roles } = await supabase.from("profile_roles").select("role").eq("profile_id", user.user.id);
+        const roleList = roles?.map((r) => r.role) ?? [];
+        if (roleList.includes("worker")) {
+          const { data: worker } = await supabase.from("workers").select("id").eq("profile_id", user.user.id).maybeSingle();
+          if (!worker) {
+            window.location.assign("/onboarding/worker");
+            return;
+          }
+        }
+      }
       window.location.assign(intent === "worker" ? "/onboarding/worker" : nextPath.startsWith("/") ? nextPath : "/dashboard");
     }
 

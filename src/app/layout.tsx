@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { LocaleProvider } from "@/lib/i18n/context";
 
 export const metadata: Metadata = {
   title: "Coops | CooperativeConnect",
@@ -13,7 +14,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body><main>{children}</main></body>
+      <body>
+        <LocaleProvider>
+          <main>{children}</main>
+        </LocaleProvider>
+      </body>
     </html>
   );
 }

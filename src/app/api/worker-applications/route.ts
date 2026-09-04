@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/server";
 
 const applicationSchema = z.object({
-  requestedCooperative: z.string().trim().max(160).optional(),
+  cooperativeId: z.string().uuid(),
   bio: z.string().trim().min(20).max(1000),
   yearsExperience: z.coerce.number().int().min(0).max(60),
   serviceInterests: z.array(z.string().trim().min(1).max(80)).min(1).max(12)
@@ -16,13 +16,13 @@ export async function POST(request: Request) {
   }
 
   const parsed = applicationSchema.safeParse(await request.json());
-  if (!parsed.success || !parsed.data.requestedCooperative) {
-    return NextResponse.json({ error: "Add a cooperative name, service interests, bio, and experience." }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Select a cooperative, service interests, bio, and experience." }, { status: 400 });
   }
 
   const { error } = await session.supabase.from("worker_applications").insert({
     profile_id: session.user.id,
-    requested_cooperative: parsed.data.requestedCooperative,
+    cooperative_id: parsed.data.cooperativeId,
     bio: parsed.data.bio,
     years_experience: parsed.data.yearsExperience,
     service_interests: parsed.data.serviceInterests

@@ -3,7 +3,8 @@ import { WorkerApplicationForm } from "@/features/auth/worker-application-form";
 import { requireUser } from "@/lib/auth/server";
 
 export default async function WorkerOnboardingPage() {
-  await requireUser("/onboarding/worker");
+  const session = await requireUser("/onboarding/worker");
+  const { data: cooperatives } = await session.supabase!.from("cooperatives").select("id,name").eq("status", "verified").order("name");
 
   return (
     <div className="min-h-screen bg-[#ededed] p-3 sm:p-4">
@@ -13,7 +14,7 @@ export default async function WorkerOnboardingPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#ef4d23]">Worker onboarding</p>
           <h1 className="mt-3 text-4xl font-medium tracking-tight">Bring your skills to the network.</h1>
           <p className="mt-3 max-w-xl text-sm leading-6 text-neutral-600">Submit your details for cooperative review. Verification and worker access are granted by an authorized cooperative administrator.</p>
-          <WorkerApplicationForm />
+          <WorkerApplicationForm cooperatives={cooperatives ?? []} />
         </main>
       </div>
     </div>

@@ -26,53 +26,17 @@ export async function POST(request: Request) {
   }
 
   const end = new Date(parsed.data.scheduledStart.getTime() + 60 * 60 * 1000);
-  const { data: service } = await session.supabase
-    .from("worker_services")
-    .select("worker_id")
-    .eq("worker_id", parsed.data.workerId)
-    .eq("service_id", parsed.data.serviceId)
-    .maybeSingle();
+  const { data: bookingId, error } = await session.supabase.rpc("create_booking_request", {
+    target_worker_id: parsed.data.workerId,
+    target_service_id: parsed.data.serviceId,
+    target_scheduled_start: parsed.data.scheduledStart.toISOString(),
+    target_scheduled_end: end.toISOString(),
+    target_line1: parsed.data.address.line1,
+    target_city: parsed.data.address.city,
+    target_state: parsed.data.address.state,
+    target_requirement: parsed.data.requirement
+  });
 
-  if (!service) {
-    return NextResponse.json({ error: "That service is not available from this worker." }, { status: 400 });
-  }
-
-  const { data: conflicts } = await session.supabase
-    .from("bookings")
-    .select("id")
-    .eq("worker_id", parsed.data.workerId)
-    .in("status", ["requested", "accepted", "confirmed", "worker_en_route", "in_progress"])
-    .lt("scheduled_start", end.toISOString())
-    .gt("scheduled_end", parsed.data.scheduledStart.toISOString());
-
-  if (conflicts?.length) {
-    return NextResponse.json({ error: "This worker already has a booking around that time." }, { status: 409 });
-  }
-
-  const { data: address, error: addressError } = await session.supabase
-    .from("addresses")
-    .insert({ profile_id: session.user.id, line1: parsed.data.address.line1, city: parsed.data.address.city, state: parsed.data.address.state })
-    .select("id")
-    .single();
-
-  if (addressError || !address) {
-    return NextResponse.json({ error: addressError?.message ?? "Could not save the service address." }, { status: 400 });
-  }
-
-  const { data: booking, error: bookingError } = await session.supabase
-    .from("bookings")
-    .insert({ customer_id: session.user.id, worker_id: parsed.data.workerId, service_id: parsed.data.serviceId, address_id: address.id, scheduled_start: parsed.data.scheduledStart.toISOString(), scheduled_end: end.toISOString(), requirement: parsed.data.requirement })
-    .select("id")
-    .single();
-
-  if (bookingError || !booking) {
-    return NextResponse.json({ error: bookingError?.message ?? "Could not create the booking." }, { status: 400 });
-  }
-
-  const { error: historyError } = await session.supabase.from("booking_status_history").insert({ booking_id: booking.id, to_status: "requested", changed_by: session.user.id });
-  if (historyError) {
-    return NextResponse.json({ error: "Booking created, but its status history could not be recorded." }, { status: 500 });
-  }
-
-  return NextResponse.json({ bookingId: booking.id });
+  if (error) return NextResponse.json({ error: error.message }, { status: error.message.includes("booking") ? 409 : 400 });
+  return NextResponse.json({ bookingId });
 }

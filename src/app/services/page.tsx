@@ -9,14 +9,34 @@ type PageProps = {
     q?: string;
     category?: string;
     city?: string;
+    latitude?: string;
+    longitude?: string;
+    minRating?: string;
+    maxDistance?: string;
+    minExperience?: string;
   }>;
 };
 
 export default async function ServicesPage({ searchParams }: PageProps) {
   const params = await searchParams;
+  const latitude = params.latitude ? Number(params.latitude) : undefined;
+  const longitude = params.longitude ? Number(params.longitude) : undefined;
+  const minRating = params.minRating ? Number(params.minRating) : undefined;
+  const maxDistance = params.maxDistance ? Number(params.maxDistance) : undefined;
+  const minExperience = params.minExperience ? Number(params.minExperience) : undefined;
+
   const [categories, workers] = await Promise.all([
     getServiceCategories(),
-    discoverWorkers({ query: params.q, category: params.category, city: params.city })
+    discoverWorkers({
+      query: params.q,
+      category: params.category,
+      city: params.city,
+      latitude,
+      longitude,
+      minRating,
+      maxDistance,
+      minExperience
+    })
   ]);
 
   return (
@@ -27,6 +47,11 @@ export default async function ServicesPage({ searchParams }: PageProps) {
           defaultQuery={params.q}
           defaultCategory={params.category}
           defaultCity={params.city}
+          defaultLatitude={latitude}
+          defaultLongitude={longitude}
+          defaultMinRating={params.minRating}
+          defaultMaxDistance={params.maxDistance}
+          defaultMinExperience={params.minExperience}
         />
         {categories.error ? <ErrorState message={categories.error} /> : null}
         {workers.error ? <ErrorState message={workers.error} /> : null}

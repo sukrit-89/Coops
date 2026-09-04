@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 
-export function WorkerApplicationForm() {
+export function WorkerApplicationForm({ cooperatives }: { cooperatives: { id: string; name: string }[] }) {
   const [cooperative, setCooperative] = useState("");
   const [interests, setInterests] = useState("");
   const [experience, setExperience] = useState("0");
@@ -19,7 +19,7 @@ export function WorkerApplicationForm() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        requestedCooperative: cooperative,
+        cooperativeId: cooperative,
         serviceInterests: interests.split(",").map((item) => item.trim()).filter(Boolean),
         yearsExperience: experience,
         bio
@@ -33,7 +33,7 @@ export function WorkerApplicationForm() {
 
   return (
     <form onSubmit={submit} className="mt-6 space-y-4 rounded-3xl bg-white p-6 shadow-sm sm:p-8">
-      <label className="block text-sm text-neutral-700">Cooperative name<input required value={cooperative} onChange={(event) => setCooperative(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-200 px-3" /></label>
+      <label className="block text-sm text-neutral-700">Cooperative<select required value={cooperative} onChange={(event) => setCooperative(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-200 bg-white px-3"><option value="">Select a cooperative</option>{cooperatives.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       <label className="block text-sm text-neutral-700">Services you provide<input required value={interests} onChange={(event) => setInterests(event.target.value)} placeholder="Electrical, fan repair" className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-200 px-3" /></label>
       <label className="block text-sm text-neutral-700">Years of experience<input required type="number" min="0" max="60" value={experience} onChange={(event) => setExperience(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-200 px-3" /></label>
       <label className="block text-sm text-neutral-700">About your work<textarea required minLength={20} maxLength={1000} value={bio} onChange={(event) => setBio(event.target.value)} rows={4} className="mt-1.5 w-full rounded-xl border border-neutral-200 px-3 py-2" /></label>

@@ -17,8 +17,13 @@ export async function PATCH(request: Request) {
   const parsed = profileSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Check your name, bio, experience, phone, and service radius." }, { status: 400 });
 
-  const { error: profileError } = await session.supabase.from("profiles").update({ full_name: parsed.data.fullName, phone: parsed.data.phone || null }).eq("id", session.user.id);
-  const { error: workerError } = await session.supabase.from("workers").update({ bio: parsed.data.bio, years_experience: parsed.data.yearsExperience, service_radius_km: parsed.data.serviceRadiusKm }).eq("profile_id", session.user.id);
-  if (profileError || workerError) return NextResponse.json({ error: profileError?.message ?? workerError?.message ?? "Profile update failed." }, { status: 400 });
+  const { error } = await session.supabase.rpc("update_worker_profile", {
+    target_full_name: parsed.data.fullName,
+    target_phone: parsed.data.phone ?? "",
+    target_bio: parsed.data.bio,
+    target_years_experience: parsed.data.yearsExperience,
+    target_service_radius_km: parsed.data.serviceRadiusKm
+  });
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ ok: true });
 }

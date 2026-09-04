@@ -1,12 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import type { BookingStatus } from "@/types/database";
+import type { AppRole, BookingStatus } from "@/types/database";
+import { canTransitionBookingStatus, validNextStatuses } from "@/lib/domain/booking-status";
 
-export function StatusAction({ bookingId, status }: { bookingId: string; status: BookingStatus }) {
+export function StatusAction({
+  bookingId,
+  status,
+  role = "worker"
+}: {
+  bookingId: string;
+  status: BookingStatus;
+  role?: AppRole;
+}) {
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const options = status === "requested" ? ["accepted", "rejected"] : status === "accepted" ? ["confirmed"] : status === "confirmed" ? ["worker_en_route"] : status === "worker_en_route" ? ["in_progress"] : status === "in_progress" ? ["completed"] : [];
+  const options = validNextStatuses(status).filter((next) => canTransitionBookingStatus({ from: status, to: next, role }));
 
   async function updateStatus(nextStatus: string) {
     setPending(true);
