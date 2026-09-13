@@ -1,63 +1,64 @@
-# Kaarya ML Pipeline
+# ML Pipeline Setup Guide
 
-## Overview
+## Training the Demand Forecast Model
 
-Free-tier compliant ML pipeline for demand forecasting and worker allocation.
-
-## Structure
-
-```
-ml/
- ├── app.py # FastAPI inference service (HuggingFace Space)
- ├── train_demand_forecast.py # LightGBM training script
- ├── evaluate.py # Model evaluation + acceptance criteria
- └── requirements.txt # Python dependencies
-
-scripts/
- └── generate_synthetic_bookings.py # Cold-start synthetic data
-
-models/
- └── demand_forecast_v1.pkl # Trained model (gitignored, too large)
-```
-
-## Quick Start
-
+### Prerequisites
 ```bash
-cd ml
-pip install -r requirements.txt
+python -m venv ml/venv
+source ml/venv/bin/activate # Linux/Mac
+# or
+.\ml\venv\Scripts\activate # Windows
 
-# Generate synthetic training data
-python scripts/generate_synthetic_bookings.py
-
-# Train model
-python ml/train_demand_forecast.py
-
-# Evaluate
-python ml/evaluate.py
-
-# Run inference API
-uvicorn app:app --host 0.0.0.0 --port 7860
+pip install -r ml/requirements.txt
 ```
 
-## HuggingFace Space Deployment
+### Step 1: Generate Synthetic Data (if no real data)
+```bash
+python scripts/generate_synthetic_bookings.py --output data/bookings.csv --count 10000
+```
 
-1. Create a new Space at https://huggingface.co/spaces
-2. Select "FastAPI" SDK
-3. Push this entire `ml/` directory
-4. The Space will auto-deploy and expose the API
+### Step 2: Train the Model
+```bash
+python ml/train_demand_forecast.py \
+ --data data/bookings.csv \
+ --output models/demand_forecast_v1.pkl \
+ --model-type lightgbm
+```
 
-## Model Acceptance Criteria
+Expected output:
+- `models/demand_forecast_v1.pkl` — trained model
+- `models/metrics.json` — evaluation metrics
+- `models/feature_importance.png` — visualization
 
-- MAPE < 25% on holdout set
-- RMSE < 5 jobs/day
-- Model evaluated weekly against real data
+### Step 3: Evaluate the Model
+```bash
+python ml/evaluate.py \
+ --model models/demand_forecast_v1.pkl \
+ --data data/bookings.csv \
+ --output evaluation_results.json
+```
 
-## API Endpoints
+Acceptance criteria:
+- MAPE < 25%
+- RMSE < 20% of mean demand
+- R² > 0.6
 
-- `POST /forecast/demand` — Predict demand for next N days
-- `POST /allocate` — Assign workers to jobs
-- `GET /health` — Health check
+### Step 4: Deploy to HuggingFace Space
 
-## Environment Variables
+1. Create a new Space on HuggingFace (type: Docker)
+2. Push the `ml/` directory to the Space
+3. Set environment variables in Space settings:
+ - `PORT=7860`
+ - `MODEL_PATH=/app/models/demand_forecast_v1.pkl`
+4. The Space will auto-deploy
 
-- `ML_INFERENCE_URL` — HuggingFace Space URL (backend only)
+### Step 5: Configure Backend
+
+Set the `ML_INFERENCE_URL` environment variable to your HuggingFace Space URL:
+```
+ML_INFERENCE_URL=https://<username>-demand-forecast.hf.space
+```
+
+### Fallback Behavior
+
+If the ML service is unreachable, the system automatically falls back to rule-based matching and historical averages for forecasting.
