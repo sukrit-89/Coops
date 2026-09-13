@@ -1,20 +1,21 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/server";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createCatalogService } from "@/lib/services/catalog";
 
-export async function GET(request: Request) {
+export async function GET() {
  const session = await getCurrentUser();
- if (!session.user || !session.supabase) {
- return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ if (!session.supabase) {
+ return NextResponse.json({ error: "Not configured" }, { status: 500 });
  }
 
- const { data, error } = await session.supabase
- .from("service_catalog_items")
- .select("*")
- .order("name");
-
- if (error) return NextResponse.json({ error: error.message }, { status: 400 });
- return NextResponse.json({ items: data });
+ try {
+ const service = createCatalogService(session.supabase);
+ const items = await service.list();
+ return NextResponse.json({ items });
+ } catch (e: unknown) {
+ const message = e instanceof Error ? e.message : "Failed to load catalog.";
+ return NextResponse.json({ error: message }, { status: 500 });
+ }
 }
 
 export async function POST(request: Request) {
@@ -22,26 +23,24 @@ export async function POST(request: Request) {
  if (!session.user || !session.supabase) {
  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
  }
- if (!session.roles.includes("platform_admin") && !session.roles.includes("cooperative_admin")) {
- return NextResponse.json({ error: "Admin role required." }, { status: 403 });
+
+ if (!session.roles.includes("platform_admin")) {
+ return NextResponse.json({ error: "Forbidden" }, { status: 403 });
  }
 
  const body = await request.json();
- const { name, sku, unitPriceCents, description } = body;
+ const { name, sku, unit_price_cents, description } = body;
 
- if (!name || !sku || typeof unitPriceCents !== "number") {
- return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+ if (!name || !sku || typeof unit_price_cents !== "number") {
+ return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
  }
 
- const admin = createSupabaseAdminClient();
- if (!admin) return NextResponse.json({ error: "Server misconfigured." }, { status: 500 });
-
- const { data, error } = await admin
- .from("service_catalog_items")
- .insert({ name, sku, unit_price_cents: unitPriceCents, description })
- .select()
- .single();
-
- if (error) return NextResponse.json({ error: error.message }, { status: 400 });
- return NextResponse.json({ item: data }, { status: 201 });
+ try {
+ const service = createCatalogService(session.supabase);
+ const item = await service.create({ name, sku, unit_price_cents, description });
+ return NextResponse.json(item, { status: 201 });
+ } catch (e: unknown) {
+ const message = e instanceof Error ? e.message : "Failed to create catalog item.";
+ return NextResponse.json({ error: message }, { status: 500 });
+ }
 }
