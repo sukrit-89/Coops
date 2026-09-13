@@ -1,22 +1,46 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/server";
+import { createNotificationService } from "@/lib/services/notifications";
 
 export async function GET() {
-  const session = await getCurrentUser();
-  if (!session.user || !session.supabase) return NextResponse.json({ error: "Sign in to view notifications." }, { status: 401 });
+ const session = await getCurrentUser();
+ if (!session.user || !session.supabase) {
+ return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ }
 
-  const { data, error } = await session.supabase.from("notifications").select("id,title,body,booking_id,read_at,created_at").order("created_at", { ascending: false }).limit(20);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ userId: session.user.id, notifications: data ?? [] });
+ try {
+ const service = createNotificationService(session.supabase);
+ const [notifications, unreadCount] = await Promise.all([
+ service.listForRecipient(session.user.id),
+ service.getUnreadCount(session.user.id),
+ ]);
+
+ return NextResponse.json({ notifications, unreadCount });
+ } catch (e: unknown) {
+ const message = e instanceof Error ? e.message : "Failed to load notifications.";
+ return NextResponse.json({ error: message }, { status: 500 });
+ }
 }
 
-export async function PATCH(request: Request) {
-  const session = await getCurrentUser();
-  if (!session.user || !session.supabase) return NextResponse.json({ error: "Sign in to update notifications." }, { status: 401 });
-  const body = await request.json() as { notificationId?: string };
-  if (!body.notificationId) return NextResponse.json({ error: "Notification ID is required." }, { status: 400 });
+export async function POST(request: Request) {
+ const session = await getCurrentUser();
+ if (!session.user || !session.supabase) {
+ return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ }
 
-  const { error } = await session.supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", body.notificationId).eq("recipient_id", session.user.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ ok: true });
+ const { title, body, booking_id } = await request.json();
+
+ try {
+ const service = createNotificationService(session.supabase);
+ const notification = await service.create({
+ recipient_id: session.user.id,
+ title,
+ body,
+ booking_id,
+ });
+ return NextResponse.json(notification, { status: 201 });
+ } catch (e: unknown) {
+ const message = e instanceof Error ? e.message : "Failed to create notification.";
+ return NextResponse.json({ error: message }, { status: 500 });
+ }
 }
