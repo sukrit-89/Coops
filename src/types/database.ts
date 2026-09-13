@@ -1410,6 +1410,48 @@ export type Database = {
  },
  ]
 		}
+		recurring_bookings: {
+			Row: {
+				id: string
+				customer_id: string
+				service_id: string
+				cooperative_id: string
+				frequency: string
+				interval: number
+				start_date: string
+				end_date: string | null
+				status: string
+				created_at: string
+				updated_at: string
+			}
+			Insert: {
+				id?: string
+				customer_id: string
+				service_id: string
+				cooperative_id: string
+				frequency: string
+				interval?: number
+				start_date: string
+				end_date?: string | null
+				status?: string
+				created_at?: string
+				updated_at?: string
+			}
+			Update: {
+				id?: string
+				customer_id?: string
+				service_id?: string
+				cooperative_id?: string
+				frequency?: string
+				interval?: number
+				start_date?: string
+				end_date?: string | null
+				status?: string
+				created_at?: string
+				updated_at?: string
+			}
+			Relationships: []
+		}
 		alerts: {
 			Row: {
 				acknowledged_at: string | null

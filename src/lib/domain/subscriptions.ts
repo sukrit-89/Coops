@@ -1,47 +1,33 @@
-export type SubscriptionTier = "basic" | "plus" | "premium";
-
 export type SubscriptionPlan = {
- tier: SubscriptionTier;
+ tier: string;
  name: string;
  monthlyFeeCents: number;
  features: string[];
- bookingLimit: number;
- priorityDispatch: boolean;
- welfareMatch: boolean;
 };
 
-export const SUBSCRIPTION_PLANS: Record<SubscriptionTier, SubscriptionPlan> = {
+export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
  basic: {
  tier: "basic",
  name: "Basic",
  monthlyFeeCents: 0,
- features: ["Pay per booking", "Standard matching", "Email notifications"],
- bookingLimit: 999,
- priorityDispatch: false,
- welfareMatch: false,
+ features: ["5 bookings/month", "Standard support"],
  },
  plus: {
  tier: "plus",
  name: "Plus",
- monthlyFeeCents: 9900,
- features: ["5 bookings / month", "Priority dispatch", "Welfare fund match 1:1", "SMS notifications"],
- bookingLimit: 5,
- priorityDispatch: true,
- welfareMatch: true,
+ monthlyFeeCents: 49900,
+ features: ["20 bookings/month", "Priority support", "Advanced analytics"],
  },
  premium: {
  tier: "premium",
  name: "Premium",
- monthlyFeeCents: 29900,
- features: ["Unlimited bookings", "Priority dispatch", "Welfare fund match 2:1", "24/7 support", "Annual maintenance contract discount"],
- bookingLimit: 999,
- priorityDispatch: true,
- welfareMatch: true,
+ monthlyFeeCents: 99900,
+ features: ["Unlimited bookings", "24/7 support", "Custom integrations", "Dedicated manager"],
  },
 };
 
-export function getRecommendedPlan(avgMonthlyBookings: number, wantsMaintenanceContract: boolean): SubscriptionTier {
- if (wantsMaintenanceContract || avgMonthlyBookings >= 8) return "premium";
- if (avgMonthlyBookings >= 2) return "plus";
+export function getRecommendedPlan(monthlyBookings: number, isOrganization: boolean): string {
+ if (isOrganization) return "premium";
+ if (monthlyBookings > 15) return "plus";
  return "basic";
 }
