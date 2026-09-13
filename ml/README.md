@@ -1,23 +1,63 @@
-# Coops Matching Service
+# Kaarya ML Pipeline
 
-This service trains a worker-match model from labeled booking outcomes and serves predictions. It intentionally has no demo dataset.
+## Overview
 
-## Run
+Free-tier compliant ML pipeline for demand forecasting and worker allocation.
+
+## Structure
+
+```
+ml/
+ ├── app.py # FastAPI inference service (HuggingFace Space)
+ ├── train_demand_forecast.py # LightGBM training script
+ ├── evaluate.py # Model evaluation + acceptance criteria
+ └── requirements.txt # Python dependencies
+
+scripts/
+ └── generate_synthetic_bookings.py # Cold-start synthetic data
+
+models/
+ └── demand_forecast_v1.pkl # Trained model (gitignored, too large)
+```
+
+## Quick Start
 
 ```bash
 cd ml
-python -m venv .venv
-. .venv/bin/activate
 pip install -r requirements.txt
-uvicorn service:app --reload --port 8001
+
+# Generate synthetic training data
+python scripts/generate_synthetic_bookings.py
+
+# Train model
+python ml/train_demand_forecast.py
+
+# Evaluate
+python ml/evaluate.py
+
+# Run inference API
+uvicorn app:app --host 0.0.0.0 --port 7860
 ```
 
-## Train
+## HuggingFace Space Deployment
 
-`POST /train` with at least 10 labeled examples containing successful and unsuccessful outcomes. Feature values must be normalized between 0 and 1.
+1. Create a new Space at https://huggingface.co/spaces
+2. Select "FastAPI" SDK
+3. Push this entire `ml/` directory
+4. The Space will auto-deploy and expose the API
 
-## Predict
+## Model Acceptance Criteria
 
-`POST /predict` with the six matching features. The endpoint returns `503` until a real model has been trained.
+- MAPE < 25% on holdout set
+- RMSE < 5 jobs/day
+- Model evaluated weekly against real data
 
-The production Next.js matching route remains the explainable fallback until this service has a validated model and a monitored deployment.
+## API Endpoints
+
+- `POST /forecast/demand` — Predict demand for next N days
+- `POST /allocate` — Assign workers to jobs
+- `GET /health` — Health check
+
+## Environment Variables
+
+- `ML_INFERENCE_URL` — HuggingFace Space URL (backend only)
