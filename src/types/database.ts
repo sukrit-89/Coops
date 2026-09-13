@@ -214,6 +214,7 @@ export type Database = {
  bookings: {
  Row: {
  address_id: string
+ cooperative_id: string | null
  created_at: string
  customer_id: string
  id: string
@@ -228,6 +229,7 @@ export type Database = {
  }
  Insert: {
  address_id: string
+ cooperative_id?: string | null
  created_at?: string
  customer_id: string
  id?: string
@@ -242,6 +244,7 @@ export type Database = {
  }
  Update: {
  address_id?: string
+ cooperative_id?: string | null
  created_at?: string
  customer_id?: string
  id?: string
@@ -1350,8 +1353,11 @@ export type Database = {
  completed_jobs: number
  cooperative_id: string
  created_at: string
+ jobs_accepted: number
  profile_id: string
+ rating: number
  service_radius_km: number
+ trust_score: number
  updated_at: string
  verification_status: Database["public"]["Enums"]["verification_status"]
  years_experience: number
@@ -1362,8 +1368,12 @@ export type Database = {
  completed_jobs?: number
  cooperative_id: string
  created_at?: string
+ id?: string
+ jobs_accepted?: number
  profile_id: string
+ rating?: number
  service_radius_km?: number
+ trust_score?: number
  updated_at?: string
  verification_status?: Database["public"]["Enums"]["verification_status"]
  years_experience?: number
@@ -1374,8 +1384,11 @@ export type Database = {
  completed_jobs?: number
  cooperative_id?: string
  created_at?: string
+ jobs_accepted?: number
  profile_id?: string
+ rating?: number
  service_radius_km?: number
+ trust_score?: number
  updated_at?: string
  verification_status?: Database["public"]["Enums"]["verification_status"]
  years_experience?: number

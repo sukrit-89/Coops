@@ -1,4 +1,5 @@
 -- Migration 0011: Automated database notification triggers
+-- Fixed: removed non-existent notifications.type column references
 
 -- Trigger function for booking status changes
 create or replace function public.notify_on_booking_status_change()
@@ -8,28 +9,24 @@ security definer
 set search_path = public
 as $$
 begin
-  if (TG_OP = 'UPDATE' and OLD.status is distinct from NEW.status) then
-    -- Notify customer
-    insert into notifications (recipient_id, booking_id, type, title, body)
-    values (
-      NEW.customer_id,
-      NEW.id,
-      'booking_status',
-      'Booking Status Updated',
-      'Your booking status changed to ' || replace(NEW.status::text, '_', ' ')
-    );
+ if (TG_OP = 'UPDATE' and OLD.status is distinct from NEW.status) then
+ insert into notifications (recipient_id, booking_id, title, body)
+ values (
+ NEW.customer_id,
+ NEW.id,
+ 'Booking Status Updated',
+ 'Your booking status changed to ' || replace(NEW.status::text, '_', ' ')
+ );
 
-    -- Notify worker
-    insert into notifications (recipient_id, booking_id, type, title, body)
-    values (
-      NEW.worker_id,
-      NEW.id,
-      'booking_status',
-      'Booking Status Updated',
-      'Service booking status changed to ' || replace(NEW.status::text, '_', ' ')
-    );
-  end if;
-  return NEW;
+ insert into notifications (recipient_id, booking_id, title, body)
+ values (
+ NEW.worker_id,
+ NEW.id,
+ 'Booking Status Updated',
+ 'Service booking status changed to ' || replace(NEW.status::text, '_', ' ')
+ );
+ end if;
+ return NEW;
 end;
 $$;
 
@@ -48,20 +45,18 @@ security definer
 set search_path = public
 as $$
 begin
-  if (TG_OP = 'INSERT' or (TG_OP = 'UPDATE' and OLD.status is distinct from NEW.status)) then
-    if (NEW.status = 'paid') then
-      -- Notify worker of payment
-      insert into notifications (recipient_id, booking_id, type, title, body)
-      values (
-        NEW.worker_id,
-        NEW.booking_id,
-        'payment_received',
-        'Payment Verified',
-        'Payment received for completed service.'
-      );
-    end if;
-  end if;
-  return NEW;
+ if (TG_OP = 'INSERT' or (TG_OP = 'UPDATE' and OLD.status is distinct from NEW.status)) then
+ if (NEW.status = 'paid') then
+ insert into notifications (recipient_id, booking_id, title, body)
+ values (
+ NEW.worker_id,
+ NEW.booking_id,
+ 'Payment Verified',
+ 'Payment received for completed service.'
+ );
+ end if;
+ end if;
+ return NEW;
 end;
 $$;
 

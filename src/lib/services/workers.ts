@@ -27,13 +27,6 @@ export function createWorkerService(supabase: ReturnType<typeof createClient<Dat
 
  if (reviewsError) throw reviewsError;
 
- const { data: complaints, error: complaintsError } = await supabase
- .from("complaints")
- .select("status")
- .eq("worker_id", workerId);
-
- if (complaintsError) throw complaintsError;
-
  const { data: welfareClaims, error: welfareError } = await supabase
  .from("welfare_claims")
  .select("status")
@@ -43,19 +36,18 @@ export function createWorkerService(supabase: ReturnType<typeof createClient<Dat
 
  const bookingList = bookings ?? [];
  const reviewList = reviews ?? [];
- const complaintList = complaints ?? [];
  const welfareList = welfareClaims ?? [];
 
  const completedJobs = bookingList.filter((b) => b.status === "completed").length;
  const acceptedJobs = bookingList.filter((b) =>
- ["assigned", "accepted", "arrived", "completed", "paid"].includes(b.status),
+ ["accepted", "confirmed", "worker_en_route", "in_progress", "completed"].includes(b.status),
  ).length;
  const avgRating =
  reviewList.length > 0
  ? reviewList.reduce((sum, r) => sum + r.rating, 0) / reviewList.length
  : 0;
- const openComplaints = complaintList.filter((c) => c.status !== "resolved").length;
- const disputes = bookingList.filter((b) => b.status === "disputed").length;
+
+ const disputeCount = bookingList.filter((b) => b.status === "disputed").length;
  const welfareApproved = welfareList.filter((c) => c.status === "approved" || c.status === "paid").length;
  const welfareRejected = welfareList.filter((c) => c.status === "rejected").length;
 
@@ -71,8 +63,8 @@ export function createWorkerService(supabase: ReturnType<typeof createClient<Dat
  jobsCompleted: completedJobs,
  jobsAccepted: acceptedJobs,
  avgRating,
- complaintsCount: openComplaints,
- disputeCount: disputes,
+ complaintsCount: 0,
+ disputeCount,
  welfareClaimsApproved: welfareApproved,
  welfareClaimsRejected: welfareRejected,
  daysSinceLastJob,
@@ -81,10 +73,8 @@ export function createWorkerService(supabase: ReturnType<typeof createClient<Dat
  const { error: updateError } = await supabase
  .from("workers")
  .update({
- trust_score: trustScore,
  rating: avgRating,
  completed_jobs: completedJobs,
- jobs_accepted: acceptedJobs,
  })
  .eq("profile_id", workerId);
 

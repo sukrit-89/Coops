@@ -57,7 +57,7 @@ export function createSettlementService(supabase: ReturnType<typeof createClient
  async generateForPeriod(periodStart: string, periodEnd: string) {
  const { data: payments, error: paymentsError } = await supabase
  .from("payments")
- .select("booking_id, amount_cents")
+ .select("booking_id, amount_cents, worker_id")
  .eq("status", "paid")
  .gte("paid_at", `${periodStart}T00:00:00Z`)
  .lte("paid_at", `${periodEnd}T23:59:59Z`);
@@ -65,60 +65,64 @@ export function createSettlementService(supabase: ReturnType<typeof createClient
  if (paymentsError) throw paymentsError;
  if (!payments?.length) return [];
 
- const bookingIds = payments.map((p) => p.booking_id);
- const { data: bookings, error: bookingsError } = await supabase
- .from("bookings")
- .select("id, worker_id, cooperative_id")
- .in("id", bookingIds);
-
- if (bookingsError) throw bookingsError;
- if (!bookings?.length) return [];
-
- const cooperativeIds = [...new Set(bookings.map((b) => b.cooperative_id).filter(Boolean))];
- const { data: cooperatives } = await supabase
- .from("cooperatives")
- .select("id, federation_id")
- .in("id", cooperativeIds as string[]);
-
- const coopMap = new Map((cooperatives ?? []).map((c) => [c.id, c.federation_id]));
- const workerIds = [...new Set(bookings.map((b) => b.worker_id))];
- const { data: workers } = await supabase
+ const workerIds = [...new Set(payments.map((p) => p.worker_id))];
+ const { data: workers, error: workersError } = await supabase
  .from("workers")
  .select("profile_id, cooperative_id")
  .in("profile_id", workerIds);
 
- const workerMap = new Map((workers ?? []).map((w) => [w.profile_id, w.cooperative_id]));
- const paymentMap = new Map(payments.map((p) => [p.booking_id, p.amount_cents]));
+ if (workersError) throw workersError;
+ const workerCoopMap = new Map((workers ?? []).map((w) => [w.profile_id, w.cooperative_id]));
+
+ const bookingIds = payments.map((p) => p.booking_id);
+ const { data: bookings, error: bookingsError } = await supabase
+ .from("bookings")
+ .select("id, customer_id, worker_id, service_id")
+ .in("id", bookingIds);
+
+ if (bookingsError) throw bookingsError;
+ const bookingPaymentMap = new Map(payments.map((p) => [p.booking_id, p.amount_cents]));
+
+ const cooperativeIds = [...new Set((workers ?? []).map((w) => w.cooperative_id).filter(Boolean))];
+ let coopMap = new Map<string, string | null>();
+ if (cooperativeIds.length > 0) {
+ const { data: cooperatives } = await supabase
+ .from("cooperatives")
+ .select("id, federation_id")
+ .in("id", cooperativeIds as string[]);
+ coopMap = new Map((cooperatives ?? []).map((c) => [c.id, c.federation_id]));
+ }
 
  const workerTotals: Record<string, number> = {};
  const cooperativeTotals: Record<string, number> = {};
  const federationTotals: Record<string, number> = {};
  const welfareByWorker: Record<string, number> = {};
 
- for (const booking of bookings) {
- const amountCents = paymentMap.get(booking.id) ?? 0;
+ for (const booking of bookings ?? []) {
+ const amountCents = bookingPaymentMap.get(booking.id) ?? 0;
  if (amountCents <= 0) continue;
 
- const cooperativeId = booking.cooperative_id ?? workerMap.get(booking.worker_id) ?? null;
+ const workerId = booking.worker_id;
+ const cooperativeId = workerCoopMap.get(workerId) ?? null;
  const federationId = cooperativeId ? coopMap.get(cooperativeId) ?? null : null;
 
- // Worker gets 70%
+ // Worker 70%
  const workerAmount = Math.round(amountCents * 0.70);
- workerTotals[booking.worker_id] = (workerTotals[booking.worker_id] ?? 0) + workerAmount;
+ workerTotals[workerId] = (workerTotals[workerId] ?? 0) + workerAmount;
 
- // Cooperative gets 15%
+ // Cooperative 15%
  if (cooperativeId) {
  cooperativeTotals[cooperativeId] = (cooperativeTotals[cooperativeId] ?? 0) + Math.round(amountCents * 0.15);
  }
 
- // Federation gets 5%
+ // Federation 5%
  if (federationId) {
  federationTotals[federationId] = (federationTotals[federationId] ?? 0) + Math.round(amountCents * 0.05);
  }
 
  // Worker welfare reserve: 3% of worker's earnings
  const welfareAmount = Math.round(amountCents * WELFARE_PERCENTAGE);
- welfareByWorker[booking.worker_id] = (welfareByWorker[booking.worker_id] ?? 0) + welfareAmount;
+ welfareByWorker[workerId] = (welfareByWorker[workerId] ?? 0) + welfareAmount;
  }
 
  // Update worker welfare accounts
