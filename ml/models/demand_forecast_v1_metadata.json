@@ -1,0 +1,29 @@
+{
+  "version": "v1",
+  "trained_at": "2026-09-13T23:10:12.264260",
+  "mape": 0.1275,
+  "r2": 0.734,
+  "rmse": 1.107,
+  "mae": 0.8726,
+  "features": [
+    "day_of_week",
+    "month",
+    "day_of_year",
+    "is_weekend",
+    "week_of_month",
+    "dow_sin",
+    "dow_cos",
+    "month_sin",
+    "month_cos",
+    "jobs_lag_1",
+    "jobs_lag_7",
+    "rolling_7d",
+    "rolling_14d",
+    "service_id",
+    "zone"
+  ],
+  "training_rows": 2880,
+  "test_rows": 720,
+  "acceptance_criteria_passed": true,
+  "data_path": "/home/sukrit/Projects/COOP/data/bookings_history.csv"
+}

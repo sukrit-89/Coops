@@ -19,35 +19,101 @@ export function AuthForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
     setPending(true);
 
     const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      setMessage("Connect Supabase in .env.local before using authentication.");
+    let authError: string | null = null;
+    let authUser: any = null;
+
+    if (mode === "sign-in") {
+      if (supabase) {
+        const res = await supabase.auth.signInWithPassword({ email, password });
+        if (res.data.session) {
+          authUser = res.data.user;
+        } else if (res.error) {
+          authError = res.error.message;
+        }
+      }
+
+      // If browser client auth didn't get session, try server route handler fallback
+      if (!authUser && !authError) {
+        try {
+          const res = await fetch("/api/auth/signin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+          const data = await res.json();
+          if (res.ok && data.session) {
+            authUser = data.user;
+            if (supabase && data.session) {
+              await supabase.auth.setSession({
+                access_token: data.session.access_token,
+                refresh_token: data.session.refresh_token,
+              });
+            }
+          } else {
+            authError = data.error || "Sign in failed.";
+          }
+        } catch {
+          authError = "Network error during sign in.";
+        }
+      }
+    } else {
+      // Sign up flow
+      try {
+        const res = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, fullName, intent }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          authError = data.error || "Account creation failed.";
+        } else {
+          setMessage("Account created successfully. You can now sign in.");
+          setMode("sign-in");
+          setPending(false);
+          return;
+        }
+      } catch {
+        if (supabase) {
+          const res = await supabase.auth.signUp({
+            email,
+            password,
+            options: { data: { full_name: fullName, account_intent: intent } },
+          });
+          if (res.error) {
+            authError = res.error.message;
+          } else {
+            setMessage("Account created. Check your email if confirmation is enabled, then sign in.");
+            setMode("sign-in");
+            setPending(false);
+            return;
+          }
+        } else {
+          authError = "Network error during account creation.";
+        }
+      }
+    }
+
+    if (authError) {
+      setMessage(authError);
       setPending(false);
       return;
     }
 
-    const result = mode === "sign-in"
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName, account_intent: intent } } });
-
-    if (result.error) {
-      setMessage(result.error.message);
-    } else if (mode === "sign-up") {
-      setMessage("Account created. Check your email if confirmation is enabled, then sign in.");
-      setMode("sign-in");
-    } else {
-      const { data: user } = await supabase.auth.getUser();
-      if (user?.user) {
-        const { data: roles } = await supabase.from("profile_roles").select("role").eq("profile_id", user.user.id);
+    if (mode === "sign-in" && authUser) {
+      if (supabase) {
+        const { data: roles } = await supabase.from("profile_roles").select("role").eq("profile_id", authUser.id);
         const roleList = roles?.map((r) => r.role) ?? [];
         if (roleList.includes("worker")) {
-          const { data: worker } = await supabase.from("workers").select("id").eq("profile_id", user.user.id).maybeSingle();
+          const { data: worker } = await supabase.from("workers").select("id").eq("profile_id", authUser.id).maybeSingle();
           if (!worker) {
-            window.location.assign("/onboarding/worker");
+            window.location.href = "/onboarding/worker";
             return;
           }
         }
       }
-      window.location.assign(intent === "worker" ? "/onboarding/worker" : nextPath.startsWith("/") ? nextPath : "/dashboard");
+      window.location.href = intent === "worker" ? "/onboarding/worker" : nextPath.startsWith("/") ? nextPath : "/dashboard";
+      return;
     }
 
     setPending(false);

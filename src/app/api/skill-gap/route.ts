@@ -11,7 +11,7 @@ export async function GET() {
  }
 
  try {
- const supabase = session.roles.includes("platform_admin") ? createSupabaseAdminClient() : session.supabase;
+ const supabase = (session.roles.includes("platform_admin") ? createSupabaseAdminClient() : null) ?? session.supabase;
  if (!supabase) return NextResponse.json({ error: "Not configured" }, { status: 500 });
 
  const service = createSkillGapService(supabase);

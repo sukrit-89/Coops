@@ -1,18 +1,28 @@
-# Next.js build output
+# Dependencies & Package Managers
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+
+# Next.js Build & Outputs
 .next/
 out/
 .vercel/
+dist/
+build/
+*.tsbuildinfo
+.eslintcache
 
-# Dependencies
-node_modules/
-
-# Environment files
+# Environment & Secret Files
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 .env*.local
+*.pem
+*.key
+*.crt
 
 # Logs
 *.log
@@ -22,14 +32,15 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Diagnostic & Cache
-.eslintcache
-*.tsbuildinfo
+# Diagnostic, Test & Coverage Outputs
 coverage/
-dist/
-build/
+.nyc_output/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
 
-# Python & Machine Learning artifacts
+# Python & Machine Learning Artifacts
 __pycache__/
 *.py[cod]
 *$py.class
@@ -38,18 +49,47 @@ venv/
 ENV/
 env/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 ml/__pycache__/
-ml/*.joblib
+*.joblib
+*.pkl
+*.h5
+*.onnx
+*.pt
+*.pth
 
-# Operating System & IDE
+# Generated datasets & data dumps
+data/*.csv
+
+# Supabase Local CLI & Temporary files
+.supabase/
+supabase/.temp/
+
+# Flutter & Dart Build Artifacts
+.dart_tool/
+.pub-cache/
+.pub/
+ephemeral/
+.packages
+flutter_apps/*/.dart_tool/
+flutter_apps/*/build/
+flutter_apps/*/.pub-cache/
+flutter_apps/*/.pub/
+flutter_apps/*/.packages
+flutter_apps/*/.flutter-plugins
+flutter_apps/*/.flutter-plugins-dependencies
+
+# Operating System & IDE Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# Supabase local environment
-.supabase/
-
-
+*~

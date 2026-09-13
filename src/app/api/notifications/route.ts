@@ -11,7 +11,7 @@ export async function GET() {
 
  try {
  const isAdmin = session.roles.includes("platform_admin");
- const supabase = isAdmin ? createSupabaseAdminClient() : session.supabase;
+ const supabase = (isAdmin ? createSupabaseAdminClient() : null) ?? session.supabase;
 
  if (!supabase) {
  return NextResponse.json({ error: "Not configured" }, { status: 500 });

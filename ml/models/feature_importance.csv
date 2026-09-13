@@ -1,0 +1,16 @@
+feature,importance
+rolling_7d,940
+rolling_14d,751
+jobs_lag_1,556
+jobs_lag_7,504
+day_of_year,463
+day_of_week,407
+week_of_month,268
+month,138
+dow_cos,115
+dow_sin,107
+service_id,93
+is_weekend,36
+zone,16
+month_sin,5
+month_cos,0

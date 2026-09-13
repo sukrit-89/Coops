@@ -109,6 +109,17 @@ create index audit_log_actor_idx on public.audit_log (actor_id);
 create index audit_log_created_idx on public.audit_log (created_at desc);
 create index audit_log_resource_idx on public.audit_log (resource_type, resource_id);
 
+-- Service catalog items table
+create table if not exists public.service_catalog_items (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  sku text unique,
+  unit_price_cents integer not null check (unit_price_cents >= 0),
+  description text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 -- Price fields in cents (the existing schema uses cents, but the PRD also expects rupees)
 -- Add rupees-based price columns to bookings for display convenience
 alter table public.bookings add column if not exists final_price_cents integer check (final_price_cents is null or final_price_cents >= 0);
@@ -124,6 +135,10 @@ alter table public.welfare_claims enable row level security;
 alter table public.demand_forecasts enable row level security;
 alter table public.amc_contracts enable row level security;
 alter table public.audit_log enable row level security;
+alter table public.service_catalog_items enable row level security;
+
+create policy "catalog items public select" on public.service_catalog_items for select using (true);
+create policy "catalog items admin manage" on public.service_catalog_items for all using (public.has_role('platform_admin')) with check (public.has_role('platform_admin'));
 
 -- RLS policies: federations
 create policy "platform admin manages federations" on public.federations

@@ -42,6 +42,15 @@ export function createWelfareService(supabase: ReturnType<typeof createClient<Da
  return data;
  },
 
+ async listAllClaims() {
+ const { data, error } = await supabase
+ .from("welfare_claims")
+ .select("*")
+ .order("created_at", { ascending: false });
+ if (error) throw error;
+ return data;
+ },
+
  async updateClaimStatus(
  claimId: string,
  status: string,
