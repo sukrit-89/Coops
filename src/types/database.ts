@@ -1409,8 +1409,35 @@ export type Database = {
  referencedColumns: ["id"]
  },
  ]
- }
- }
+		}
+		alerts: {
+			Row: {
+				acknowledged_at: string | null
+				id: string
+				message: string
+				rule_id: string
+				severity: string
+				triggered_at: string
+			}
+			Insert: {
+				acknowledged_at?: string | null
+				id?: string
+				message: string
+				rule_id: string
+				severity: string
+				triggered_at?: string
+			}
+			Update: {
+				acknowledged_at?: string | null
+				id?: string
+				message?: string
+				rule_id?: string
+				severity?: string
+				triggered_at?: string
+			}
+			Relationships: []
+		}
+	}
  Views: {
  [_ in never]: never
  }
