@@ -1,22 +1,23 @@
 # Kaarya — Implementation Status vs PRD
 
-**Last Updated:** 2026-09-13 (after commit `52cc542`)
+**Last Updated:** 2026-09-13 (after commit `cdac432`)
 **PRD Version:** 2.0 (Free-Tier Edition)
 **Current Branch:** main
 **TypeScript Status:** `npx tsc --noEmit` = 0 errors
-**Test Status:** 24/24 tests passing
+**Test Status:** 31/31 tests passing
 
 ---
 
-## Overall Progress: ~90% Complete (up from 80%)
+## Overall Progress: ~92% Complete (up from 90%)
 
 ### ✅ Completed (Implemented & Committed)
 
 #### 1. Database Schema & Migrations (95%)
-- ✅ 15 migration files (`0001`–`0014` + seed), all committed
+- ✅ 16 migration files (`0001`–`0015` + seed), all committed
 - ✅ Core tables: `profiles`, `workers`, `cooperatives`, `customers`, `services`, `bookings`, `booking_event`, `payments`, `ratings`, `reviews`, `complaints`, `conversations`, `worker_applications`
 - ✅ Extended PRD tables (in `0013_prd_extended_tables.sql`): `federations`, `settlements`, `welfare_accounts`, `welfare_claims`, `amc_contracts`, `demand_forecasts`, `service_catalog_items`, `audit_logs`
 - ✅ `0014_worker_trust_score.sql` — adds `trust_score`, `rating`, `jobs_accepted`, `cooperative_id`
+- ✅ `0015_alerts_table.sql` — adds `alerts` table for threshold-based notifications
 - ✅ PostGIS extension for geospatial queries
 - ✅ Foreign keys, cascading deletes, check constraints
 - ✅ Performance indexes
@@ -55,14 +56,16 @@
 - ✅ Scoring algorithm: skill (30), distance (20), availability (20), rating (15), experience (10), service requirement (5)
 - ✅ ML-blended allocation with graceful fallback
 
-#### 6. ML Pipeline (75%)
+#### 6. ML Pipeline (80%)
 - ✅ Training script (`ml/train_demand_forecast.py`)
 - ✅ Evaluation script (`ml/evaluate.py`)
 - ✅ Inference API (`ml/app.py`)
 - ✅ Synthetic data generator
 - ✅ Dockerfile for HuggingFace Space
-- ✅ Backend service (`src/lib/services/ml.ts`)
+- ✅ Backend service (`src/lib/services/ml.ts`) — ML + rule-based fallback
+- ✅ Forecast service (`src/lib/services/forecasts.ts`) — generate + list + cooperative rollup
 - ✅ Forecast + allocation API routes
+- ✅ Forecast dashboard (`/forecasts`) with zone breakdown + prediction summary
 - ✅ `ml/README.md` — setup guide with acceptance criteria (MAPE < 25%, R² > 0.6)
 - ⚠️ Model not yet trained (requires Python environment)
 - ⚠️ HuggingFace Space not deployed
@@ -83,7 +86,7 @@
 - ✅ Settlements admin page (`/admin/settlements`)
 - ✅ Settlements user page (`/settlements`)
 
-#### 9. Admin Dashboard (90%)
+#### 9. Admin Dashboard (92%)
 - ✅ Platform admin dashboard with live metrics (`/admin`)
 - ✅ Users & roles management (`/admin/users`)
 - ✅ Services management (`/admin/services`) + API
@@ -96,6 +99,9 @@
 - ✅ Settlements page (`/admin/settlements`) + API
 - ✅ Worker verification queue (`/operations/verification`)
 - ✅ Analytics dashboard with charts (`/analytics`)
+- ✅ Forecasts page (`/forecasts`) with zone breakdown and ML/rule-based summary
+- ✅ Alerts page (`/admin/alerts`) with 5 threshold rules and evaluation form
+- ✅ Skill gap analysis page (`/admin/skill-gap`) with demand-vs-supply severity view
 
 #### 10. Communication (80%)
 - ✅ Conversations panel component
@@ -139,13 +145,25 @@
 - ⚠️ Welfare dashboard with balance tracking
 - ⚠️ Claims approval workflow UI
 
-#### 15. Testing (60%) ← NEW
+#### 15. Testing (65%) ← UPDATED
 - ✅ Vitest configured (`vitest.config.ts`)
-- ✅ 6 test files, 24 passing tests
-- ✅ Test coverage: trust score, booking status, availability, distance, settlements, matching
+- ✅ 8 test files, 31 passing tests
+- ✅ Test coverage: trust score, booking status, availability, distance, settlements, matching, alerts, forecasts
 - ✅ `npm run test` works
 - ⚠️ No E2E tests
 - ⚠️ No integration tests against real database
+
+#### 16. Intelligence & Analytics (NEW)
+- ✅ Demand forecasting service with rule-based fallback
+- ✅ Forecast API (`GET/POST /api/forecast/demand`) with ML/rule-based summary
+- ✅ Forecast dashboard (`/forecasts`) with zone breakdown and charts
+- ✅ Automated alerts service evaluating 5 threshold rules
+- ✅ Alerts API (`GET/POST /api/alerts`) with persisted alert records
+- ✅ Alerts admin page (`/admin/alerts`) with rule evaluation
+- ✅ Skill gap analysis service comparing demand vs worker supply
+- ✅ Skill gap API (`GET /api/skill-gap`) with severity buckets
+- ✅ Skill gap admin page (`/admin/skill-gap`)
+- ⚠️ ML model not yet trained or deployed to HuggingFace
 
 #### 16. Flutter Mobile Apps (50%) ← IMPROVED
 - ✅ Worker app scaffold with pubspec.yaml
@@ -176,12 +194,12 @@
 - ✅ Empty states
 - ✅ Navigation with all modules linked
 - ✅ Mobile-responsive design
-- ✅ Admin navigation with all modules (Catalog, Settlements, Federations, AMC)
+- ✅ Admin navigation with all modules (Catalog, Settlements, Federations, AMC, Alerts, Skill Gap, Forecasts)
 - ✅ Worker profile page with trust score display
 - ✅ Dark/light mode support via CSS variables
-- ✅ 10 admin pages fully implemented
+- ✅ 12 admin pages fully implemented
 
-#### 19. Documentation (85%)
+#### 19. Documentation (90%)
 - ✅ `README.md` — quick start guide
 - ✅ `PRD.md` — product requirements
 - ✅ `IMPLEMENTATION_STATUS.md` — this file
@@ -202,8 +220,6 @@
 #### 2. Advanced Features (0-10%)
 - ❌ Cancellation prediction model
 - ❌ Fraud detection
-- ❌ Skill gap detection
-- ❌ Automated alerts system
 - ❌ Export functionality (CSV/PDF)
 - ❌ Recurring bookings
 - ❌ Subscription models
@@ -245,17 +261,17 @@
 
 **Phase 1: 9/12 fully done, 2 partial, 1 not started**
 
-### Phase 2: Intelligence (Months 3-4) — 60% Complete
+### Phase 2: Intelligence (Months 3-4) — 80% Complete
 | Week | Deliverable | Status |
 |------|------------|--------|
 | 13-14 | Synthetic data generation | ✅ Done |
-| 15-16 | HF Space setup + LightGBM | ⚠️ Code done, not deployed |
-| 17-18 | Demand forecast API + federation dashboard | ⚠️ API done, UI partial |
+| 15-16 | HF Space setup + LightGBM | ⚠️ Code ready, not trained/deployed |
+| 17-18 | Demand forecast API + federation dashboard | ✅ API done, `/forecasts` page done |
 | 19-20 | ILP allocation via OR-Tools | ⚠️ Heuristic done, OR-Tools deferred |
 | 21-22 | Forecast evaluation + A/B test setup | ⚠️ Evaluation script done |
-| 23-24 | Skill gap detection + automated alerts | ❌ Not started |
+| 23-24 | Skill gap detection + automated alerts | ✅ Done |
 
-**Phase 2: 1/6 fully done, 4 partial, 1 not started**
+**Phase 2: 3/6 fully done, 2 partial, 1 not started**
 
 ### Phase 3: Growth (Months 5-6) — 45% Complete
 | Week | Deliverable | Status |
