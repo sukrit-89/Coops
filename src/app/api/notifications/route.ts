@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createNotificationService } from "@/lib/services/notifications";
 
 export async function GET() {
@@ -9,11 +10,16 @@ export async function GET() {
  }
 
  try {
- const service = createNotificationService(session.supabase);
- const [notifications, unreadCount] = await Promise.all([
- service.listForRecipient(session.user.id),
- service.getUnreadCount(session.user.id),
- ]);
+ const isAdmin = session.roles.includes("platform_admin");
+ const supabase = isAdmin ? createSupabaseAdminClient() : session.supabase;
+
+ if (!supabase) {
+ return NextResponse.json({ error: "Not configured" }, { status: 500 });
+ }
+
+ const service = createNotificationService(supabase);
+ const notifications = await service.listForRecipient(session.user.id);
+ const unreadCount = await service.getUnreadCount(session.user.id);
 
  return NextResponse.json({ notifications, unreadCount });
  } catch (e: unknown) {
@@ -29,6 +35,10 @@ export async function POST(request: Request) {
  }
 
  const { title, body, booking_id } = await request.json();
+
+ if (!title || !body) {
+ return NextResponse.json({ error: "title and body required" }, { status: 400 });
+ }
 
  try {
  const service = createNotificationService(session.supabase);
