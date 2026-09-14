@@ -482,6 +482,7 @@ export type Database = {
  Row: {
  confidence_high: number | null
  confidence_low: number | null
+ cooperative_id: string
  created_at: string
  forecast_date: string
  id: string
@@ -491,26 +492,28 @@ export type Database = {
  zone: string
  }
  Insert: {
- confidence_high?: number | null
- confidence_low?: number | null
- created_at?: string
+ confidence_high?: number | null | undefined
+ confidence_low?: number | null | undefined
+ cooperative_id?: string | undefined
+ created_at?: string | undefined
  forecast_date: string
- id?: string
- model_version?: string | null
+ id?: string | undefined
+ model_version?: string | null | undefined
  predicted_jobs: number
  service_id: string
  zone: string
  }
  Update: {
- confidence_high?: number | null
- confidence_low?: number | null
- created_at?: string
- forecast_date?: string
- id?: string
- model_version?: string | null
- predicted_jobs?: number
- service_id?: string
- zone?: string
+ confidence_high?: number | null | undefined
+ confidence_low?: number | null | undefined
+ cooperative_id?: string | undefined
+ created_at?: string | undefined
+ forecast_date?: string | undefined
+ id?: string | undefined
+ model_version?: string | null | undefined
+ predicted_jobs?: number | undefined
+ service_id?: string | undefined
+ zone?: string | undefined
  }
  Relationships: [
  {

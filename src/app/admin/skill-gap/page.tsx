@@ -1,19 +1,20 @@
 import { PageShell } from "@/components/layout/page-shell";
 import { EmptyState } from "@/components/ui/state";
-import { requireRole } from "@/lib/auth/server";
+import { resolveAdminScope } from "@/lib/auth/admin-scope";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSkillGapService } from "@/lib/services/skill-gap";
 
 export const dynamic = "force-dynamic";
 
+function SeverityBadge({ severity }: { severity: string }) {
+ const cls = severity === "critical" ? "bg-red-100 text-red-700" : severity === "moderate" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700";
+ return <span className={`rounded-full px-2.5 py-1 text-xs capitalize ${cls}`}>{severity}</span>;
+}
+
 export default async function SkillGapPage() {
-  await requireRole(["platform_admin", "cooperative_admin"]);
+ const { scope, supabase } = await resolveAdminScope();
 
- let gaps: any[] = [];
- let summary = { total: 0, critical: 0, moderate: 0, low: 0 };
-
- try {
- const { createSupabaseAdminClient } = await import("@/lib/supabase/admin");
- const { createSkillGapService } = await import("@/lib/services/skill-gap");
- const admin = createSupabaseAdminClient();
+ const admin = supabase ?? createSupabaseAdminClient();
  if (!admin) {
  return (
  <PageShell title="Skill Gap">
@@ -21,16 +22,48 @@ export default async function SkillGapPage() {
  </PageShell>
  );
  }
+
+ let gaps: any[] = [];
+ let summary = { total: 0, critical: 0, moderate: 0, low: 0 };
+
+ try {
  const service = createSkillGapService(admin);
- const result = await service.analyze(30);
- gaps = result;
- summary = { total: result.length, critical: result.filter((g) => g.severity === "critical").length, moderate: result.filter((g) => g.severity === "moderate").length, low: result.filter((g) => g.severity === "low").length };
- } catch {
- // fall back to empty state below
+ let results = await service.analyze(30);
+
+ // Cooperative admin: filter gaps to their cooperative's services
+ if (scope.kind === "cooperative") {
+ const { data: coopWorkers } = await admin
+ .from("workers")
+ .select("profile_id")
+ .eq("cooperative_id", scope.cooperativeId);
+
+ const workerProfileIds = (coopWorkers ?? []).map((w: any) => w.profile_id);
+
+ if (workerProfileIds.length) {
+ const { data: workerServices } = await admin
+ .from("worker_services")
+ .select("service_id")
+ .in("profile_id", workerProfileIds);
+ const coopServiceIds = new Set((workerServices ?? []).map((ws: any) => ws.service_id));
+ results = results.filter((g) => coopServiceIds.has(g.serviceId));
+ }
  }
 
+ gaps = results;
+ summary = {
+ total: gaps.length,
+ critical: gaps.filter((g) => g.severity === "critical").length,
+ moderate: gaps.filter((g) => g.severity === "moderate").length,
+ low: gaps.filter((g) => g.severity === "low").length,
+ };
+ } catch {
+ // fall back to empty state
+ }
+
+ const coopLabel = scope.kind === "cooperative" ? ` — ${scope.cooperativeName}` : "";
+
  return (
- <PageShell title="Skill Gap" description="Demand vs supply analysis across services">
+ <PageShell title={`Skill Gap${coopLabel}`} description="Demand vs supply analysis across services">
  <div className="grid gap-3 sm:grid-cols-3">
  <article className="rounded-2xl border border-[var(--line)] bg-white p-5">
  <p className="text-xs text-neutral-500">Critical</p>
@@ -55,13 +88,12 @@ export default async function SkillGapPage() {
  <SeverityBadge severity={gap.severity} />
  </div>
  ))}
- {gaps.length === 0 && <EmptyState title="No skill gaps detected" body="Run the analysis after adding bookings and worker assignments." />}
+ {gaps.length === 0 && (
+ <p className="px-4 py-6 text-sm text-neutral-500">
+ {scope.kind === "cooperative" ? "No skill gaps detected in your cooperative." : "No skill gaps detected. Run the analysis after adding bookings and worker assignments."}
+ </p>
+ )}
  </div>
  </PageShell>
  );
-}
-
-function SeverityBadge({ severity }: { severity: string }) {
- const cls = severity === "critical" ? "bg-red-100 text-red-700" : severity === "moderate" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700";
- return <span className={`rounded-full px-2.5 py-1 text-xs capitalize ${cls}`}>{severity}</span>;
 }

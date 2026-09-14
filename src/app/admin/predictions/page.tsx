@@ -2,22 +2,28 @@ import Link from "next/link";
 import type { Route } from "next";
 import { PageShell } from "@/components/layout/page-shell";
 import { EmptyState } from "@/components/ui/state";
-import { requireRole } from "@/lib/auth/server";
+import { resolveAdminScope } from "@/lib/auth/admin-scope";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 async function countRows(supabase: ReturnType<typeof createSupabaseAdminClient>, table: string): Promise<number> {
  if (!supabase) return 0;
+ try {
  const { count } = await (supabase as any)
  .from(table)
  .select("id", { count: "exact", head: true });
  return count ?? 0;
+ } catch {
+ return 0;
+ }
 }
 
 export default async function AdminPredictionsPage() {
-  const session = await requireRole(["platform_admin", "cooperative_admin"]);
- if (!session.supabase) {
+ const { scope, supabase } = await resolveAdminScope();
+
+ const db = supabase ?? createSupabaseAdminClient();
+ if (!db) {
  return (
  <PageShell title="Predictions" description="ML-driven booking and worker predictions.">
  <EmptyState title="Database not configured" body="Connect Supabase to view predictions." />
@@ -25,19 +31,20 @@ export default async function AdminPredictionsPage() {
  );
  }
 
- const supabase = createSupabaseAdminClient() ?? session.supabase;
  const [forecastCount, cancellationCount] = await Promise.all([
- countRows(supabase, "prediction_runs"),
- countRows(supabase, "cancellation_predictions"),
+ countRows(db, "demand_forecasts"),
+ countRows(db, "cancellation_predictions"),
  ]);
 
  const panels = [
- { label: "Demand Forecast Runs", count: forecastCount, href: "/forecasts" },
+ { label: "Demand Forecasts", count: forecastCount, href: "/forecasts" },
  { label: "Cancellation Risk Alerts", count: cancellationCount, href: "/admin/predictions/cancellation" },
  ];
 
+ const coopLabel = scope.kind === "cooperative" ? ` — ${scope.cooperativeName}` : "";
+
  return (
- <PageShell title="Predictions" description="ML outputs and model performance.">
+ <PageShell title={`Predictions${coopLabel}`} description="ML outputs and model performance.">
  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
  {panels.map((panel) => (
  <Link

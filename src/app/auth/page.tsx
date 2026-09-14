@@ -3,7 +3,6 @@ import type { Route } from "next";
 import { getCurrentUser } from "@/lib/auth/server";
 import { AuthForm } from "@/features/auth/auth-form";
 import { Navbar } from "@/components/layout/navbar";
-
 type AuthPageProps = {
   searchParams: Promise<{ next?: string }>;
 };

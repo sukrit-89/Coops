@@ -1,25 +1,36 @@
 import { PageShell } from "@/components/layout/page-shell";
 import { EmptyState } from "@/components/ui/state";
-import { requireRole } from "@/lib/auth/server";
+import { resolveAdminScope } from "@/lib/auth/admin-scope";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSubscriptionsPage() {
- await requireRole(["platform_admin", "cooperative_admin"]);
+ const { scope, supabase } = await resolveAdminScope();
 
- const admin = createSupabaseAdminClient();
+ const admin = supabase ?? createSupabaseAdminClient();
  let subscriptions: any[] = [];
  let summary = { total: 0, active: 0, paused: 0, cancelled: 0 };
 
  let coopMap = new Map<string, string>();
  if (admin) {
  try {
- const { data } = await admin
+ let query = admin
  .from("recurring_bookings")
  .select("id, frequency, interval, status, start_date, end_date, service_id, cooperative_id, services(name)")
  .order("created_at", { ascending: false })
  .limit(100);
+
+ // Cooperative admin: scope to their cooperative
+ if (scope.kind === "cooperative") {
+ query = (admin.from("recurring_bookings") as any)
+ .select("id, frequency, interval, status, start_date, end_date, service_id, cooperative_id, services(name)")
+ .eq("cooperative_id", scope.cooperativeId)
+ .order("created_at", { ascending: false })
+ .limit(100);
+ }
+
+ const { data } = await query;
  subscriptions = data ?? [];
 
  const coopIds = [...new Set(subscriptions.map((s) => s.cooperative_id).filter(Boolean))];
@@ -41,10 +52,12 @@ export default async function AdminSubscriptionsPage() {
  }
  }
 
+ const coopLabel = scope.kind === "cooperative" ? ` — ${scope.cooperativeName}` : "";
+
  return (
  <PageShell
- title="Subscriptions Overview"
- description="Monitor recurring bookings, subscription plans, and billing cadence across the platform."
+ title={`Subscriptions${coopLabel}`}
+ description="Monitor recurring bookings, plans, and billing cadence."
  >
  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
  <article className="rounded-2xl border border-[var(--line)] bg-white p-5">

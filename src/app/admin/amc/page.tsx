@@ -1,15 +1,27 @@
 import { PageShell } from "@/components/layout/page-shell";
 import { EmptyState } from "@/components/ui/state";
 import { StatusBadge } from "@/components/ui/status";
-import { requireRole } from "@/lib/auth/server";
+import { resolveAdminScope } from "@/lib/auth/admin-scope";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 export default async function AmcContractsPage() {
- await requireRole(["platform_admin", "cooperative_admin"]);
+ const { scope, supabase } = await resolveAdminScope();
 
- const admin = createSupabaseAdminClient();
+ // AMC contracts are platform-level only
+ if (scope.kind === "cooperative") {
+ return (
+ <PageShell title="AMC Contracts">
+ <EmptyState
+ title="Platform-level feature"
+ body="AMC contract management is available to platform administrators only."
+ />
+ </PageShell>
+ );
+ }
+
+ const admin = supabase ?? createSupabaseAdminClient();
  if (!admin) {
  return (
  <PageShell title="AMC Contracts">

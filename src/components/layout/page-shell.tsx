@@ -1,17 +1,20 @@
 import { Navbar } from "@/components/layout/navbar";
 import { SidePanel } from "@/components/layout/side-panel";
+import { clsx } from "clsx";
 
 export function PageShell({
  title,
  description,
- children
+ children,
+ className,
 }: {
  title: string;
  description?: string;
  children: React.ReactNode;
- }) {
+ className?: string;
+}) {
  return (
- <div className="min-h-screen bg-[#ededed] p-3 sm:p-4">
+ <div className={clsx("min-h-screen bg-[#f0ede8] p-3 sm:p-4 font-sans antialiased", className)}>
  <SidePanel />
  <div className="lg:pl-[304px] transition-[padding] duration-300">
  <div className="min-h-[calc(100vh-24px)] overflow-hidden rounded-2xl bg-[#f5f2ee] sm:min-h-[calc(100vh-32px)] sm:rounded-3xl">

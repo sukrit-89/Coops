@@ -1,14 +1,26 @@
 import { PageShell } from "@/components/layout/page-shell";
 import { EmptyState } from "@/components/ui/state";
-import { requireRole } from "@/lib/auth/server";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { resolveAdminScope } from "@/lib/auth/admin-scope";
 import { createFederationService } from "@/lib/services/federations";
 
 export const dynamic = "force-dynamic";
 
 export default async function FederationsPage() {
- await requireRole(["platform_admin", "cooperative_admin"]);
+ const { scope } = await resolveAdminScope();
 
+ // Federations are platform-level only
+ if (scope.kind === "cooperative") {
+ return (
+ <PageShell title="Federations">
+ <EmptyState
+ title="Platform-level feature"
+ body="Federation management is available to platform administrators only. Contact your platform admin to create or manage federations."
+ />
+ </PageShell>
+ );
+ }
+
+ const { createSupabaseAdminClient } = await import("@/lib/supabase/admin");
  const admin = createSupabaseAdminClient();
  if (!admin) return <PageShell title="Federations"><p>Server not configured.</p></PageShell>;
 
@@ -16,7 +28,7 @@ export default async function FederationsPage() {
  const federations = await service.list();
 
  return (
- <PageShell title="Federations" description="Regional federations">
+ <PageShell title="Federations" description="Regional federations across the platform">
  <div className="space-y-3">
  {federations.map((fed) => (
  <article key={fed.id} className="rounded-2xl border border-[var(--line)] bg-white p-5">

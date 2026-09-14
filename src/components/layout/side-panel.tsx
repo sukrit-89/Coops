@@ -83,8 +83,12 @@ const BY_ROLE: Record<Role, Section[]> = {
  { label: "Overview", href: "/admin", icon: LayoutDashboard },
  { label: "Members", href: "/admin/users", icon: Users },
  { label: "Bookings", href: "/admin/bookings", icon: CalendarCheck },
+ { label: "Payments", href: "/admin/payments", icon: CreditCard },
  { label: "Settlements", href: "/admin/settlements", icon: HandCoins },
  { label: "Welfare", href: "/admin/welfare", icon: HeartHandshake },
+ { label: "Subscriptions", href: "/admin/subscriptions", icon: RefreshCcw },
+ { label: "Forecast", href: "/forecasts", icon: TrendingUp },
+ { label: "Complaints", href: "/admin/complaints", icon: LifeBuoy },
  ],
  },
  {

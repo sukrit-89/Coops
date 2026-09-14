@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
  typedRoutes: true,
  experimental: {
- useTypeScriptCli: false
- }
+ useTypeScriptCli: false,
+ },
 };
 
 export default nextConfig;

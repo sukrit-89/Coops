@@ -17,7 +17,6 @@ export function createSkillGapService(
  async analyze(periodDays = 30): Promise<SkillGap[]> {
  const since = new Date();
  since.setDate(since.getDate() - periodDays);
-
  const sinceIso = since.toISOString();
 
  const [servicesResult, bookingsResult, workerServicesResult] = await Promise.all([

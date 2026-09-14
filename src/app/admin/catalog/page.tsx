@@ -1,24 +1,31 @@
 import { PageShell } from "@/components/layout/page-shell";
 import { EmptyState } from "@/components/ui/state";
-import { requireRole } from "@/lib/auth/server";
+import { resolveAdminScope } from "@/lib/auth/admin-scope";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createCatalogService } from "@/lib/services/catalog";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminCatalogPage() {
- await requireRole(["platform_admin", "cooperative_admin"]);
+ const { scope, supabase } = await resolveAdminScope();
 
- const admin = createSupabaseAdminClient();
+ const admin = supabase ?? createSupabaseAdminClient();
  if (!admin) return <PageShell title="Service Catalog"><p>Server not configured.</p></PageShell>;
 
+ let items: any[] = [];
+ try {
  const service = createCatalogService(admin);
- const items = await service.list();
+ items = await service.list();
+ } catch {
+ // table may not exist yet
+ }
+
+ const coopLabel = scope.kind === "cooperative" ? ` — ${scope.cooperativeName}` : "";
 
  return (
- <PageShell title="Service Catalog" description="Manage service catalog items">
+ <PageShell title={`Service Catalog${coopLabel}`} description="Manage service catalog items">
  <div className="rounded-2xl border border-[var(--line)] bg-white divide-y">
- {items.map((item) => (
+ {items.map((item: any) => (
  <div key={item.id} className="flex items-center justify-between px-4 py-3">
  <div>
  <p className="font-medium">{item.name}</p>
