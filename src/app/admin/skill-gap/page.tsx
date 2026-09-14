@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/auth/server";
 export const dynamic = "force-dynamic";
 
 export default async function SkillGapPage() {
- await requireRole("platform_admin");
+  await requireRole(["platform_admin", "cooperative_admin"]);
 
  let gaps: any[] = [];
  let summary = { total: 0, critical: 0, moderate: 0, low: 0 };

@@ -21,8 +21,14 @@ export async function POST(request: Request) {
   }
 
   const parsed = bookingSchema.safeParse(await request.json());
-  if (!parsed.success || parsed.data.scheduledStart <= new Date()) {
-    return NextResponse.json({ error: "Choose a valid future date, time, service, address, and work description." }, { status: 400 });
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0];
+    const fieldName = firstIssue?.path.join(".") || "field";
+    return NextResponse.json({ error: `Invalid ${fieldName}: ${firstIssue?.message || "Check your input."}` }, { status: 400 });
+  }
+
+  if (parsed.data.scheduledStart <= new Date()) {
+    return NextResponse.json({ error: "Scheduled date and time must be in the future." }, { status: 400 });
   }
 
   const end = new Date(parsed.data.scheduledStart.getTime() + 60 * 60 * 1000);

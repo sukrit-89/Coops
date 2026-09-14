@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth/server";
 import { UserRoleManager } from "./role-manager";
 
 export default async function AdminUsersPage() {
-  const session = await requireRole("platform_admin");
+  const session = await requireRole(["platform_admin", "cooperative_admin"]);
   if (!session.supabase) {
     return (
       <PageShell title="User Management">

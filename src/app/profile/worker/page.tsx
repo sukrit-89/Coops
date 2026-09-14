@@ -1,5 +1,5 @@
 import { PageShell } from "@/components/layout/page-shell";
-import { EmptyState } from "@/components/ui/state";
+import { EmptyState, ErrorState } from "@/components/ui/state";
 import { WorkerProfileForm } from "@/features/workers/profile-form";
 import { WorkerSettingsForm } from "@/features/workers/settings-form";
 import { requireRole } from "@/lib/auth/server";
@@ -25,7 +25,7 @@ export default async function WorkerProfilePage() {
  session.supabase!.from("reviews").select("rating").eq("worker_id", session.user.id),
  ]);
 
- const profile = worker as unknown as {
+ type WorkerProfile = {
  bio: string | null;
  years_experience: number;
  service_radius_km: number;
@@ -33,13 +33,15 @@ export default async function WorkerProfilePage() {
  trust_score: number;
  completed_jobs: number;
  profiles: { full_name: string; phone: string | null } | null;
- } | null;
+ };
+
+ const profile = (worker ?? null) as WorkerProfile | null;
 
  const reviews = reviewsData ?? [];
  const reviewCount = reviews.length;
  const avgRating = reviewCount > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount : 0;
- const rating = worker ? (worker as any).rating ?? avgRating : 0;
- const trustScore = worker ? (worker as any).trust_score ?? 0 : 0;
+ const rating = profile ? profile.rating ?? avgRating : 0;
+ const trustScore = profile ? profile.trust_score ?? 0 : 0;
 
  if (!profile) {
  return (

@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth/server";
 import { ServiceManager } from "./service-manager";
 
 export default async function AdminServicesPage() {
-  const session = await requireRole("platform_admin");
+  const session = await requireRole(["platform_admin", "cooperative_admin"]);
   if (!session.supabase) {
     return (
       <PageShell title="Services Catalog Management">

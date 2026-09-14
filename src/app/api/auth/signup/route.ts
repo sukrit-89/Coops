@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseAdminClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
@@ -30,8 +30,9 @@ export async function POST(request: Request) {
     }
 
     if (data.user && (intent === "cooperative_admin" || intent === "worker")) {
+      const adminClient = createSupabaseAdminClient() || supabase;
       const targetRole = intent === "cooperative_admin" ? "cooperative_admin" : "worker";
-      await supabase.from("profile_roles").insert({
+      await adminClient.from("profile_roles").insert({
         profile_id: data.user.id,
         role: targetRole,
       });

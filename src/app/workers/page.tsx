@@ -20,7 +20,7 @@ export default async function WorkersDirectoryPage() {
 
  const { data: workers, error } = await session.supabase
   .from("workers")
- .select("profile_id, bio, years_experience, rating, trust_score, completed_jobs, profiles(full_name, phone)")
+ .select("profile_id, bio, years_experience, rating, trust_score, jobs_completed, profiles(full_name, phone)")
  .eq("active", true)
  .order("rating", { ascending: false })
  .limit(50);
@@ -31,7 +31,7 @@ export default async function WorkersDirectoryPage() {
  years_experience: number;
  rating: number | null;
  trust_score: number | null;
- completed_jobs: number;
+ jobs_completed: number;
  profiles: { full_name: string; phone: string | null } | null;
  }>;
 
@@ -56,7 +56,7 @@ export default async function WorkersDirectoryPage() {
  {worker.profiles?.full_name ?? "Worker"}
  </h2>
  <p className="mt-1 text-sm text-neutral-500">
- {worker.years_experience} years experience · {worker.completed_jobs} jobs completed
+ {worker.years_experience} years experience · {worker.jobs_completed} jobs completed
  </p>
  {worker.bio ? (
  <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-700">

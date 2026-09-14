@@ -16,7 +16,7 @@ async function countRows(supabase: ReturnType<typeof createSupabaseAdminClient>,
 }
 
 export default async function AdminPredictionsPage() {
- const session = await requireRole("platform_admin");
+  const session = await requireRole(["platform_admin", "cooperative_admin"]);
  if (!session.supabase) {
  return (
  <PageShell title="Predictions" description="ML-driven booking and worker predictions.">

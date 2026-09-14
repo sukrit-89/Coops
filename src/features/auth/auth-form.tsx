@@ -101,28 +101,29 @@ export function AuthForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
     }
 
     if (mode === "sign-in" && authUser) {
+      let roleList: string[] = [];
       if (supabase) {
         const { data: roles } = await supabase.from("profile_roles").select("role").eq("profile_id", authUser.id);
-        const roleList = roles?.map((r) => r.role) ?? [];
-        if (roleList.includes("platform_admin") || roleList.includes("cooperative_admin")) {
-          window.location.href = "/admin";
-          return;
-        }
-        if (roleList.includes("worker")) {
+        roleList = roles?.map((r) => r.role) ?? [];
+      }
+      const effectiveIntent = authUser.user_metadata?.account_intent || intent;
+      if (roleList.includes("platform_admin") || roleList.includes("cooperative_admin") || effectiveIntent === "cooperative_admin") {
+        window.location.href = "/admin";
+        return;
+      }
+      if (roleList.includes("worker") || effectiveIntent === "worker") {
+        if (supabase) {
           const { data: worker } = await supabase.from("workers").select("id").eq("profile_id", authUser.id).maybeSingle();
           if (!worker) {
             window.location.href = "/onboarding/worker";
             return;
           }
+        } else {
+          window.location.href = "/onboarding/worker";
+          return;
         }
       }
-      if (intent === "cooperative_admin") {
-        window.location.href = "/admin";
-      } else if (intent === "worker") {
-        window.location.href = "/onboarding/worker";
-      } else {
-        window.location.href = nextPath.startsWith("/") ? nextPath : "/dashboard";
-      }
+      window.location.href = nextPath.startsWith("/") ? nextPath : "/dashboard";
       return;
     }
 

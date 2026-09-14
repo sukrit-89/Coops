@@ -7,7 +7,7 @@ import { createSettlementService } from "@/lib/services/settlements";
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettlementsPage() {
- await requireRole("platform_admin");
+ await requireRole(["platform_admin", "cooperative_admin"]);
 
  const admin = createSupabaseAdminClient();
  if (!admin) return <PageShell title="Settlements"><p>Server not configured.</p></PageShell>;

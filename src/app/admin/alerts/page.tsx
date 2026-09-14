@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/auth/server";
 export const dynamic = "force-dynamic";
 
 export default async function AlertsPage() {
- await requireRole("platform_admin");
+  await requireRole(["platform_admin", "cooperative_admin"]);
 
  return (
  <PageShell title="Alerts" description="Automated threshold-based platform alerts">

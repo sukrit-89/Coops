@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/ui/state";
 import { requireRole } from "@/lib/auth/server";
 
 export default async function AdminPage() {
-  const session = await requireRole("platform_admin");
+  const session = await requireRole(["platform_admin", "cooperative_admin"]);
   if (!session.supabase) return <PageShell title="Platform administration"><EmptyState title="Connect Supabase" body="Platform administration requires a configured Supabase connection." /></PageShell>;
 
   const supabase = session.supabase;

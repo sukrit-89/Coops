@@ -7,7 +7,7 @@ import { createCatalogService } from "@/lib/services/catalog";
 export const dynamic = "force-dynamic";
 
 export default async function AdminCatalogPage() {
- await requireRole("platform_admin");
+ await requireRole(["platform_admin", "cooperative_admin"]);
 
  const admin = createSupabaseAdminClient();
  if (!admin) return <PageShell title="Service Catalog"><p>Server not configured.</p></PageShell>;
