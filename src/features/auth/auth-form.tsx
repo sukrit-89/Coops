@@ -9,7 +9,7 @@ export function AuthForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [intent, setIntent] = useState<"customer" | "worker">("customer");
+  const [intent, setIntent] = useState<"customer" | "worker" | "cooperative_admin">("customer");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -104,6 +104,10 @@ export function AuthForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
       if (supabase) {
         const { data: roles } = await supabase.from("profile_roles").select("role").eq("profile_id", authUser.id);
         const roleList = roles?.map((r) => r.role) ?? [];
+        if (roleList.includes("platform_admin") || roleList.includes("cooperative_admin")) {
+          window.location.href = "/admin";
+          return;
+        }
         if (roleList.includes("worker")) {
           const { data: worker } = await supabase.from("workers").select("id").eq("profile_id", authUser.id).maybeSingle();
           if (!worker) {
@@ -112,7 +116,13 @@ export function AuthForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
           }
         }
       }
-      window.location.href = intent === "worker" ? "/onboarding/worker" : nextPath.startsWith("/") ? nextPath : "/dashboard";
+      if (intent === "cooperative_admin") {
+        window.location.href = "/admin";
+      } else if (intent === "worker") {
+        window.location.href = "/onboarding/worker";
+      } else {
+        window.location.href = nextPath.startsWith("/") ? nextPath : "/dashboard";
+      }
       return;
     }
 
@@ -126,8 +136,19 @@ export function AuthForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
         <button type="button" onClick={() => setMode("sign-up")} className={`border-b-2 pb-3 ${mode === "sign-up" ? "border-[#ef4d23] text-neutral-900" : "border-transparent text-neutral-400"}`}>Create account</button>
       </div>
       <form onSubmit={submit} className="mt-6 space-y-4">
-        {mode === "sign-up" ? <label className="block text-sm text-neutral-700">Full name<input required value={fullName} onChange={(event) => setFullName(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-200 px-3 outline-none focus:border-[#ef4d23]" /></label> : null}
-        <fieldset className="rounded-xl bg-[#f5f2ee] p-1"><legend className="sr-only">Account type</legend><div className="grid grid-cols-2 gap-1"><button type="button" onClick={() => setIntent("customer")} className={`rounded-lg px-3 py-2 text-xs ${intent === "customer" ? "bg-white font-medium text-neutral-900 shadow-sm" : "text-neutral-500"}`}>I need a service</button><button type="button" onClick={() => setIntent("worker")} className={`rounded-lg px-3 py-2 text-xs ${intent === "worker" ? "bg-white font-medium text-neutral-900 shadow-sm" : "text-neutral-500"}`}>I provide services</button></div></fieldset>
+        {mode === "sign-up" ? (
+          <>
+            <label className="block text-sm text-neutral-700">Full name<input required value={fullName} onChange={(event) => setFullName(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-200 px-3 outline-none focus:border-[#ef4d23]" /></label>
+            <fieldset className="rounded-xl bg-[#f5f2ee] p-1">
+              <legend className="sr-only">Account type</legend>
+              <div className="grid grid-cols-3 gap-1">
+                <button type="button" onClick={() => setIntent("customer")} className={`rounded-lg px-2 py-2 text-xs text-center ${intent === "customer" ? "bg-white font-medium text-neutral-900 shadow-sm" : "text-neutral-500"}`}>Customer</button>
+                <button type="button" onClick={() => setIntent("worker")} className={`rounded-lg px-2 py-2 text-xs text-center ${intent === "worker" ? "bg-white font-medium text-neutral-900 shadow-sm" : "text-neutral-500"}`}>Worker</button>
+                <button type="button" onClick={() => setIntent("cooperative_admin")} className={`rounded-lg px-2 py-2 text-xs text-center ${intent === "cooperative_admin" ? "bg-white font-medium text-neutral-900 shadow-sm" : "text-neutral-500"}`}>Coop Admin</button>
+              </div>
+            </fieldset>
+          </>
+        ) : null}
         <label className="block text-sm text-neutral-700">Email<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-200 px-3 outline-none focus:border-[#ef4d23]" /></label>
         <label className="block text-sm text-neutral-700">Password<input required minLength={6} type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-neutral-200 px-3 outline-none focus:border-[#ef4d23]" /></label>
         {message ? <p role="status" className="rounded-xl bg-[#f5f2ee] px-3 py-2 text-sm text-neutral-600">{message}</p> : null}

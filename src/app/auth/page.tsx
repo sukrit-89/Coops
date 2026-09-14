@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+import type { Route } from "next";
+import { getCurrentUser } from "@/lib/auth/server";
 import { AuthForm } from "@/features/auth/auth-form";
 import { Navbar } from "@/components/layout/navbar";
 
@@ -7,6 +10,17 @@ type AuthPageProps = {
 
 export default async function AuthPage({ searchParams }: AuthPageProps) {
   const params = await searchParams;
+  const { user, roles } = await getCurrentUser();
+
+  if (user) {
+    if (roles.includes("platform_admin") || roles.includes("cooperative_admin")) {
+      redirect("/admin");
+    } else if (roles.includes("worker")) {
+      redirect("/onboarding/worker");
+    } else {
+      redirect((params.next && params.next.startsWith("/") ? params.next : "/dashboard") as Route);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#ededed] p-3 sm:p-4">

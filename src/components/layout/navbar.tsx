@@ -145,10 +145,17 @@ export function Navbar({ overlay = false }: { overlay?: boolean }) {
             </Link>
           )}
 
-          <Link href={"/auth?next=/services" as Route} className="inline-flex items-center gap-1.5 rounded-full bg-[#ef4d23] py-1.5 pl-3.5 pr-1.5 text-xs font-medium text-white sm:pl-4 sm:text-[13px]">
-            <span>{t("actions.tryItOut")}</span>
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20"><ChevronRight size={13} /></span>
-          </Link>
+          {userEmail ? (
+            <Link href={(isAdmin ? "/admin" : "/dashboard") as Route} className="inline-flex items-center gap-1.5 rounded-full bg-[#ef4d23] py-1.5 pl-3.5 pr-1.5 text-xs font-medium text-white sm:pl-4 sm:text-[13px]">
+              <span>{isAdmin ? "Admin Console" : "Dashboard"}</span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20"><ChevronRight size={13} /></span>
+            </Link>
+          ) : (
+            <Link href={"/auth?next=/services" as Route} className="inline-flex items-center gap-1.5 rounded-full bg-[#ef4d23] py-1.5 pl-3.5 pr-1.5 text-xs font-medium text-white sm:pl-4 sm:text-[13px]">
+              <span>{t("actions.tryItOut")}</span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20"><ChevronRight size={13} /></span>
+            </Link>
+          )}
           <button type="button" className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-800 md:hidden" onClick={() => setOpen((value) => !value)} aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open}>
             {open ? <X size={19} /> : <Menu size={19} />}
           </button>

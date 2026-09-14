@@ -29,6 +29,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
+    if (data.user && (intent === "cooperative_admin" || intent === "worker")) {
+      const targetRole = intent === "cooperative_admin" ? "cooperative_admin" : "worker";
+      await supabase.from("profile_roles").insert({
+        profile_id: data.user.id,
+        role: targetRole,
+      });
+    }
+
     return NextResponse.json({ user: data.user, session: data.session });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Failed to create account.";
