@@ -1222,3 +1222,4 @@ When revenue justifies it, upgrades are cheap and well-understood:
 The discipline isn't about being cheap. It's about **building a business where infrastructure cost is negligible relative to revenue**, so every booking is profitable from Day 1.
 
 **That's the free-tier perspective. Build lean. Scale when revenue proves it.**
+
